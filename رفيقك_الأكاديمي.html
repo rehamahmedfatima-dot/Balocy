@@ -1,0 +1,3130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>رفيقك الأكاديمي - البكالوريا المصرية</title>
+
+    <!-- Firebase SDKs (compat) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.13.0/firebase-app-compat.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.13.0/firebase-firestore-compat.min.js" crossorigin="anonymous"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+
+    <style>
+        :root {
+            --primary: #1E40AF;
+            --secondary: #BFDBFE;
+            --bg-light: #EFF6FF;
+            --surface: #FFFFFF;
+            --dark-navy: #0F172A;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --text: #1E293B;
+            --text-secondary: #64748B;
+            --border: #E2E8F0;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+            --radius: 14px;
+            --radius-sm: 8px;
+            --radius-lg: 20px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --sidebar-width: 260px;
+            --bottom-nav-height: 64px;
+            --header-height: 60px;
+            --font: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+        }
+
+        [data-theme="dark"] {
+            --bg-light: #0F172A;
+            --surface: #1E293B;
+            --text: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --border: #334155;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.4);
+            --secondary: #1E3A5F;
+            --dark-navy: #0F172A;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg-light);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: background var(--transition), color var(--transition);
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        /* ===== MAIN LAYOUT ===== */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            padding: 20px 14px;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow-y: auto;
+            z-index: 100;
+            transition: transform var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+        .sidebar-header .app-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 14px;
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.92rem;
+            font-weight: 500;
+            transition: all var(--transition);
+            cursor: pointer;
+        }
+        .sidebar-nav a:hover {
+            background: var(--bg-light);
+            color: var(--primary);
+        }
+        .sidebar-nav a.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+        }
+        .sidebar-nav a .nav-icon {
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-right: var(--sidebar-width);
+            padding: 24px 28px 80px;
+            min-height: 100vh;
+            transition: margin var(--transition);
+        }
+        @media (max-width: 900px) {
+            .sidebar {
+                transform: translateX(100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-right: 0;
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.4);
+                z-index: 99;
+            }
+            .sidebar-overlay.show {
+                display: block;
+            }
+            .mobile-menu-btn {
+                display: inline-flex !important;
+            }
+        }
+        .mobile-menu-btn {
+            display: none;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 1.3rem;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+        }
+        .sidebar-overlay {
+            display: none;
+        }
+
+        /* ===== BOTTOM NAV (MOBILE) ===== */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            height: var(--bottom-nav-height);
+            z-index: 100;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+        .bottom-nav .nav-items {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            justify-content: space-around;
+        }
+        .bottom-nav .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.7rem;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 8px;
+            transition: all var(--transition);
+            flex: 1;
+            text-align: center;
+        }
+        .bottom-nav .nav-item .nav-icon {
+            font-size: 1.4rem;
+        }
+        .bottom-nav .nav-item.active {
+            color: var(--primary);
+        }
+        @media (max-width: 900px) {
+            .bottom-nav {
+                display: block;
+            }
+            .main-content {
+                padding-bottom: calc(var(--bottom-nav-height) + 20px);
+            }
+        }
+
+        /* ===== CARDS & COMPONENTS ===== */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            transition: all var(--transition);
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title .icon {
+            font-size: 1.3rem;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        @media (max-width: 768px) {
+            .grid-2,
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (min-width: 769px) and (max-width: 1200px) {
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .stat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .badge-safe {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+        .badge-strong {
+            background: rgba(34, 197, 94, 0.12);
+            color: var(--success);
+        }
+        .badge-attention {
+            background: rgba(245, 158, 11, 0.12);
+            color: var(--warning);
+        }
+        .badge-critical {
+            background: rgba(239, 68, 68, 0.12);
+            color: var(--danger);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font);
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #1a3590;
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        .btn-outline:hover {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+        .btn-sm {
+            padding: 7px 12px;
+            font-size: 0.8rem;
+        }
+        .btn-lg {
+            padding: 14px 24px;
+            font-size: 1.05rem;
+            border-radius: var(--radius);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s ease;
+            background: var(--primary);
+        }
+        .progress-bar .fill.success {
+            background: var(--success);
+        }
+        .progress-bar .fill.warning {
+            background: var(--warning);
+        }
+        .progress-bar .fill.danger {
+            background: var(--danger);
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: var(--bg-light);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .tag.primary {
+            background: rgba(30, 64, 175, 0.1);
+            color: var(--primary);
+            border-color: rgba(30, 64, 175, 0.2);
+        }
+        .tag.success {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+            border-color: rgba(34, 197, 94, 0.2);
+        }
+        .tag.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+        .tag.danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--radius-sm);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th {
+            text-align: right;
+            padding: 10px 12px;
+            background: var(--bg-light);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 2px solid var(--border);
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+        tr:hover td {
+            background: var(--bg-light);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 28px 24px;
+            width: 100%;
+            max-width: 520px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+        }
+        .modal h3 {
+            font-size: 1.2rem;
+            margin-bottom: 18px;
+            color: var(--text);
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text);
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            background: var(--bg-light);
+            color: var(--text);
+            font-family: var(--font);
+            transition: border-color var(--transition);
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .page-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .page-header .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+        .empty-state .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .empty-state p {
+            font-size: 0.95rem;
+        }
+
+        .timer-display {
+            font-size: 4rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--primary);
+            letter-spacing: 2px;
+            font-variant-numeric: tabular-nums;
+            margin: 20px 0;
+        }
+        .timer-display.running {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-top: 10px;
+        }
+        .calendar-cell {
+            aspect-ratio: 1;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            min-height: 36px;
+        }
+        .calendar-cell.present {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+        .calendar-cell.absent {
+            background: var(--danger);
+            color: #fff;
+            border-color: var(--danger);
+        }
+        .calendar-cell.excused {
+            background: var(--warning);
+            color: #fff;
+            border-color: var(--warning);
+        }
+        .calendar-cell.no-school {
+            background: var(--border);
+            color: var(--text-secondary);
+        }
+        .calendar-cell:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow);
+        }
+        .calendar-cell .day-num {
+            font-size: 0.7rem;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-height: 280px;
+            margin: 10px 0;
+        }
+        .chart-container canvas {
+            max-height: 280px !important;
+        }
+
+        .achievement-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+        }
+        .achievement-badge.unlocked {
+            border-color: var(--success);
+            background: rgba(34, 197, 94, 0.06);
+        }
+        .achievement-badge .ach-icon {
+            font-size: 2rem;
+        }
+        .achievement-badge.locked {
+            opacity: 0.5;
+        }
+
+        .topic-status {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .topic-status.not-started {
+            background: rgba(100, 116, 139, 0.15);
+            color: var(--text-secondary);
+        }
+        .topic-status.learning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+        .topic-status.understood {
+            background: rgba(30, 64, 175, 0.15);
+            color: var(--primary);
+        }
+        .topic-status.solved {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark-navy);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            z-index: 300;
+            animation: slideUp 0.3s ease;
+            box-shadow: var(--shadow-lg);
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+        .flex {
+            display: flex;
+        }
+        .items-center {
+            align-items: center;
+        }
+        .gap-8 {
+            gap: 8px;
+        }
+        .gap-12 {
+            gap: 12px;
+        }
+        .gap-16 {
+            gap: 16px;
+        }
+        .mb-8 {
+            margin-bottom: 8px;
+        }
+        .mb-12 {
+            margin-bottom: 12px;
+        }
+        .mb-16 {
+            margin-bottom: 16px;
+        }
+        .mb-24 {
+            margin-bottom: 24px;
+        }
+        .mt-8 {
+            margin-top: 8px;
+        }
+        .mt-12 {
+            margin-top: 12px;
+        }
+        .mt-16 {
+            margin-top: 16px;
+        }
+        .mt-24 {
+            margin-top: 24px;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-secondary {
+            color: var(--text-secondary);
+        }
+        .text-primary {
+            color: var(--primary);
+        }
+        .text-success {
+            color: var(--success);
+        }
+        .text-warning {
+            color: var(--warning);
+        }
+        .text-danger {
+            color: var(--danger);
+        }
+        .fw-bold {
+            font-weight: 700;
+        }
+        .fs-sm {
+            font-size: 0.85rem;
+        }
+        .fs-xs {
+            font-size: 0.75rem;
+        }
+        .w-100 {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <!-- ===== MAIN APP ===== -->
+    <div id="view-app">
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar (Desktop) -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span style="font-size:1.8rem;">🎓</span>
+                <span class="app-title">رفيقك الأكاديمي</span>
+            </div>
+            <nav class="sidebar-nav" id="sidebar-nav">
+                <a data-page="dashboard" class="active" onclick="navigateTo('dashboard')"><span class="nav-icon">📊</span> لوحة التحكم</a>
+                <a data-page="subjects" onclick="navigateTo('subjects')"><span class="nav-icon">📚</span> المواد</a>
+                <a data-page="grades" onclick="navigateTo('grades')"><span class="nav-icon">📝</span> الدرجات</a>
+                <a data-page="attendance" onclick="navigateTo('attendance')"><span class="nav-icon">✅</span> الحضور</a>
+                <a data-page="timer" onclick="navigateTo('timer')"><span class="nav-icon">⏱️</span> مؤقت الدراسة</a>
+                <a data-page="notes" onclick="navigateTo('notes')"><span class="nav-icon">🗒️</span> الملاحظات</a>
+                <a data-page="topics" onclick="navigateTo('topics')"><span class="nav-icon">❓</span> المواضيع الصعبة</a>
+                <a data-page="exams" onclick="navigateTo('exams')"><span class="nav-icon">📅</span> الامتحانات</a>
+                <a data-page="goals" onclick="navigateTo('goals')"><span class="nav-icon">🎯</span> الأهداف</a>
+                <a data-page="analytics" onclick="navigateTo('analytics')"><span class="nav-icon">📈</span> الإحصائيات</a>
+                <a data-page="journey" onclick="navigateTo('journey')"><span class="nav-icon">🗺️</span> رحلتي الأكاديمية</a>
+                <a data-page="settings" onclick="navigateTo('settings')"><span class="nav-icon">⚙️</span> الإعدادات</a>
+            </nav>
+            <div style="padding:10px;border-top:1px solid var(--border);">
+                <div class="flex items-center gap-8 mb-8">
+                    <span id="sidebar-user-avatar" style="font-size:1.5rem;">👤</span>
+                    <div>
+                        <div class="fw-bold fs-sm" id="sidebar-user-name">ريهام أحمد</div>
+                        <div class="fs-xs text-secondary" id="sidebar-user-email">riham@example.com</div>
+                    </div>
+                </div>
+                <!-- No logout button needed for single user -->
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+            <!-- Mobile header -->
+            <div class="flex items-center gap-12 mb-16" style="display:none;" id="mobile-header">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+                <span class="fw-bold" style="font-size:1.2rem;">🎓 رفيقك الأكاديمي</span>
+            </div>
+            <div id="page-content"></div>
+        </main>
+
+        <!-- Bottom Nav (Mobile) -->
+        <nav class="bottom-nav" id="bottom-nav">
+            <div class="nav-items">
+                <a class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')"><span class="nav-icon">📊</span> الرئيسية</a>
+                <a class="nav-item" data-page="subjects" onclick="navigateTo('subjects')"><span class="nav-icon">📚</span> المواد</a>
+                <a class="nav-item" data-page="timer" onclick="navigateTo('timer')"><span class="nav-icon">⏱️</span> الدراسة</a>
+                <a class="nav-item" data-page="grades" onclick="navigateTo('grades')"><span class="nav-icon">📝</span> الدرجات</a>
+                <a class="nav-item" data-page="more" onclick="navigateTo('more')"><span class="nav-icon">⋯</span> المزيد</a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- ===== ONBOARDING VIEW (shown only if not set up) ===== -->
+    <div id="view-onboarding" class="onboarding-container hidden">
+        <div class="onboarding-card">
+            <div style="font-size:48px;margin-bottom:8px;">📚</div>
+            <h2>مرحباً بكِ يا ريهام!</h2>
+            <p>دعنا نُعدّ عامك الدراسي. اختر المسار الأكاديمي المناسب لك.</p>
+            <div class="pathway-grid" id="pathway-selector">
+                <div class="pathway-card" data-pathway="medicine" onclick="selectPathway('medicine')">
+                    <div class="path-icon">🩺</div>
+                    <div class="path-name">طب وعلوم الحياة</div>
+                </div>
+                <div class="pathway-card" data-pathway="engineering" onclick="selectPathway('engineering')">
+                    <div class="path-icon">⚙️</div>
+                    <div class="path-name">هندسة وعلوم الحاسب</div>
+                </div>
+                <div class="pathway-card" data-pathway="business" onclick="selectPathway('business')">
+                    <div class="path-icon">📊</div>
+                    <div class="path-name">الأعمال</div>
+                </div>
+                <div class="pathway-card" data-pathway="arts" onclick="selectPathway('arts')">
+                    <div class="path-icon">🎨</div>
+                    <div class="path-name">الآداب والإنسانيات</div>
+                </div>
+            </div>
+            <div class="mt-16">
+                <label class="fs-sm fw-bold">السنة الدراسية</label>
+                <select id="academic-year-select" class="auth-input mt-8">
+                    <option value="2025-2026">2025 - 2026</option>
+                    <option value="2026-2027">2026 - 2027</option>
+                    <option value="2027-2028">2027 - 2028</option>
+                </select>
+            </div>
+            <button class="btn btn-primary btn-lg w-100 mt-16" onclick="completeOnboarding()">ابدأ رحلتك 🚀</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // FIREBASE INITIALIZATION
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAUww7Zjh0ofqr3IadgxFH8OnY8mfiiM8g",
+            authDomain: "clouddrive-1b394.firebaseapp.com",
+            projectId: "clouddrive-1b394",
+            storageBucket: "clouddrive-1b394.firebasestorage.app",
+            messagingSenderId: "226591847424",
+            appId: "1:226591847424:web:446fe1577f1ba22613d4e5",
+        };
+
+        let firebaseReady = false;
+        let db = null;
+
+        if (typeof firebase === 'undefined') {
+            console.error('⚠️ لم تُحمَّل مكتبة Firebase من الـ CDN — تحقق من الاتصال بالإنترنت.');
+        } else {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                // بعض الشبكات (فايروول / بروكسي / برامج حماية) بتمنع نوع الاتصال
+                // الافتراضي (WebChannel) اللي بيستخدمه Firestore، فبنجبره يستخدم
+                // Long-Polling العادي بدل الاتصال المباشر (Streaming) لتفادي هذه المشكلة
+                db.settings({ experimentalForceLongPolling: true });
+                firebaseReady = true;
+            } catch (err) {
+                console.error('⚠️ فشل تهيئة Firebase:', err);
+            }
+        }
+
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
+        const DB_KEYS = {
+            appData: 'academic_appdata_riham',
+            settings: 'academic_settings_riham',
+            darkMode: 'academic_darkmode_riham',
+        };
+
+        // Single user
+        const currentUser = {
+            id: 'riham-ahmed-user',
+            name: 'ريهام أحمد',
+            email: 'riham@example.com',
+        };
+
+        let appData = null;
+        let settings = null;
+        let currentPage = 'dashboard';
+        let selectedPathway = null;
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let timerTotalSeconds = 0;
+        let timerRunning = false;
+        let timerSubjectId = null;
+
+        const DEFAULT_SETTINGS = {
+            darkMode: false,
+            language: 'ar',
+            reminderFrequency: 'daily',
+            islamicReminders: true,
+            academicYearStart: '2025-09-01',
+            academicYearEnd: '2026-06-15',
+            threshold: 60,
+            pathway: null,
+            studentName: 'ريهام أحمد',
+            notifications: true,
+        };
+
+        const PATHWAYS_CONFIG = {
+            medicine: {
+                name: 'طب وعلوم الحياة',
+                icon: '🩺',
+                subjects: [
+                    { name: 'الأحياء', color: '#22C55E', icon: '🧬' },
+                    { name: 'الكيمياء', color: '#F59E0B', icon: '⚗️' },
+                    { name: 'الفيزياء', color: '#3B82F6', icon: '🔬' },
+                    { name: 'اللغة العربية', color: '#EF4444', icon: '📖' },
+                    { name: 'اللغة الإنجليزية', color: '#8B5CF6', icon: '🇬🇧' },
+                    { name: 'الرياضيات', color: '#EC4899', icon: '📐' },
+                ]
+            },
+            engineering: {
+                name: 'هندسة وعلوم الحاسب',
+                icon: '⚙️',
+                subjects: [
+                    { name: 'الرياضيات', color: '#EC4899', icon: '📐' },
+                    { name: 'الفيزياء', color: '#3B82F6', icon: '🔬' },
+                    { name: 'الكيمياء', color: '#F59E0B', icon: '⚗️' },
+                    { name: 'علوم الحاسب', color: '#8B5CF6', icon: '💻' },
+                    { name: 'اللغة العربية', color: '#EF4444', icon: '📖' },
+                    { name: 'اللغة الإنجليزية', color: '#22C55E', icon: '🇬🇧' },
+                ]
+            },
+            business: {
+                name: 'الأعمال',
+                icon: '📊',
+                subjects: [
+                    { name: 'الرياضيات', color: '#EC4899', icon: '📐' },
+                    { name: 'الاقتصاد', color: '#F59E0B', icon: '📈' },
+                    { name: 'إدارة الأعمال', color: '#3B82F6', icon: '🏢' },
+                    { name: 'الإحصاء', color: '#8B5CF6', icon: '📊' },
+                    { name: 'اللغة العربية', color: '#EF4444', icon: '📖' },
+                    { name: 'اللغة الإنجليزية', color: '#22C55E', icon: '🇬🇧' },
+                ]
+            },
+            arts: {
+                name: 'الآداب والإنسانيات',
+                icon: '🎨',
+                subjects: [
+                    { name: 'اللغة العربية', color: '#EF4444', icon: '📖' },
+                    { name: 'اللغة الإنجليزية', color: '#22C55E', icon: '🇬🇧' },
+                    { name: 'التاريخ', color: '#F59E0B', icon: '📜' },
+                    { name: 'الجغرافيا', color: '#3B82F6', icon: '🗺️' },
+                    { name: 'الفلسفة', color: '#8B5CF6', icon: '🧠' },
+                    { name: 'علم النفس', color: '#EC4899', icon: '💭' },
+                ]
+            }
+        };
+
+        const ASSESSMENT_TYPES = ['امتحان', 'اختبار', 'تقييم', 'واجب', 'مشروع', 'اختبار شهري', 'امتحان تجريبي', 'أخرى'];
+
+        const GOAL_TYPES = ['يومي', 'أسبوعي', 'شهري', 'أكاديمي'];
+        const NOTE_TAGS = ['مادة', 'فصل', 'موضوع', 'شخصي', 'مراجعة', 'مهم'];
+        const TOPIC_STATUSES = ['لم أبدأ', 'أتعلم', 'فهمت', 'تم الحل'];
+        const DIFFICULTY_LEVELS = ['سهل', 'متوسط', 'صعب', 'صعب جداً'];
+
+        const MOTIVATIONAL_MESSAGES = [
+            'التقدم الصغير ما زال تقدماً 💪',
+            'نفسك المستقبلية ستشكرك 🌟',
+            'ساعة تركيز واحدة يمكن أن تغير يومك بالكامل ⏱️',
+            'كل يوم تدرس فيه تقترب من هدفك 🎯',
+            'النجاح ليس صدفة، إنه عمل شاق ومثابرة 📚',
+            'أنت أقوى مما تظن 💪',
+            'استمر، فالعظماء بدأوا من الصفر 🌱',
+            'كل خطوة صغيرة تقربك من القمة ⛰️',
+            'الانضباط هو جسر بين الأهداف والإنجاز 🌉',
+            'لا تستسلم، فأنت أقرب مما تتخيل 🌅',
+        ];
+
+        const ISLAMIC_REMINDERS = [
+            'استغفر الله 🤲',
+            'صلِّ على سيدنا محمد ﷺ 💚',
+            'سبحان الله وبحمده 🌸',
+            'لا حول ولا قوة إلا بالله 🌟',
+            'الحمد لله على كل حال 🙏',
+            'اللهُمَّ صَلِّ وَسَلِّمْ على نَبِيِّنَا مُحَمَّد ﷺ',
+        ];
+
+        const ACHIEVEMENTS_LIST = [
+            { id: 'first_week', name: 'أول أسبوع مكتمل', icon: '📅', desc: 'أكملت أسبوعك الأول في التطبيق', check: (d) => d
+                    .studySessions.length >= 1 },
+            { id: 'streak_7', name: 'سلسلة 7 أيام', icon: '🔥', desc: '7 أيام متتالية من الدراسة', check: (d) =>
+                    getStudyStreak(d) >= 7 },
+            { id: 'hours_10', name: '10 ساعات دراسة', icon: '⏱️', desc: 'أكملت 10 ساعات دراسة', check: (d) =>
+                    getTotalStudyMinutes(d) >= 600 },
+            { id: 'first_80', name: 'أول درجة 80%', icon: '🎯', desc: 'حصلت على 80% أو أكثر في تقييم', check: (d) => d.grades
+                    .some(g => g.percentage >= 80) },
+            { id: 'perfect', name: 'تقييم مثالي', icon: '🏆', desc: 'حصلت على درجة كاملة', check: (d) => d.grades.some(g => g
+                    .percentage >= 100) },
+            { id: 'attendance_30', name: '30 يوم حضور', icon: '✅', desc: 'حضرت 30 يوم دراسي', check: (d) => d.attendance
+                    .filter(a => a.status === 'present').length >= 30 },
+            { id: 'topics_20', name: '20 موضوع صعب', icon: '❓', desc: 'حللت 20 موضوعاً صعباً', check: (d) => d
+                    .difficultTopics.filter(t => t.status === 'تم الحل').length >= 20 },
+            { id: 'goals_10', name: '10 أهداف مكتملة', icon: '🎯', desc: 'أكملت 10 أهداف', check: (d) => d.goals.filter(g => g
+                    .completed).length >= 10 },
+            { id: 'notes_5', name: '5 ملاحظات', icon: '📝', desc: 'أنشأت 5 ملاحظات', check: (d) => d.notes.length >= 5 },
+            { id: 'exam_added', name: 'أضفت امتحان', icon: '📅', desc: 'أضفت أول امتحان', check: (d) => d.exams.length >= 1 },
+        ];
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 6); }
+
+        function getToday() { return new Date().toISOString().split('T')[0]; }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+        }
+
+        function formatMinutes(minutes) {
+            if (minutes < 60) return minutes + ' دقيقة';
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            return h + ' ساعة' + (m > 0 ? ' و' + m + ' دقيقة' : '');
+        }
+
+        function getDaysBetween(start, end) {
+            const s = new Date(start + 'T00:00:00');
+            const e = new Date(end + 'T00:00:00');
+            return Math.max(0, Math.round((e - s) / (1000 * 60 * 60 * 24)));
+        }
+
+        function getAcademicYearDay() {
+            const start = settings?.academicYearStart || '2025-09-01';
+            const today = getToday();
+            return getDaysBetween(start, today) + 1;
+        }
+
+        function getAcademicYearTotalDays() {
+            const start = settings?.academicYearStart || '2025-09-01';
+            const end = settings?.academicYearEnd || '2026-06-15';
+            return getDaysBetween(start, end) + 1;
+        }
+
+        function getDaysRemaining() {
+            const end = settings?.academicYearEnd || '2026-06-15';
+            const today = getToday();
+            return Math.max(0, getDaysBetween(today, end));
+        }
+
+        function getStudyStreak(data) {
+            if (!data || !data.studySessions) return 0;
+            const sessions = [...new Set(data.studySessions.map(s => s.date))].sort().reverse();
+            let streak = 0;
+            const today = new Date();
+            for (let i = 0; i < sessions.length; i++) {
+                const sessionDate = new Date(sessions[i] + 'T00:00:00');
+                const expectedDate = new Date(today);
+                expectedDate.setDate(expectedDate.getDate() - i);
+                if (sessionDate.toDateString() === expectedDate.toDateString()) {
+                    streak++;
+                } else if (i === 0 && sessionDate < today) {
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    if (sessionDate.toDateString() === yesterday.toDateString()) streak++;
+                    break;
+                } else { break; }
+            }
+            return streak;
+        }
+
+        function getTotalStudyMinutes(data) {
+            if (!data || !data.studySessions) return 0;
+            return data.studySessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+        }
+
+        function getAttendanceStats(data) {
+            if (!data || !data.attendance) return { present: 0, absent: 0, excused: 0, total: 0 };
+            const present = data.attendance.filter(a => a.status === 'present').length;
+            const absent = data.attendance.filter(a => a.status === 'absent').length;
+            const excused = data.attendance.filter(a => a.status === 'excused').length;
+            return { present, absent, excused, total: present + absent + excused };
+        }
+
+        function getOverallAverage(data) {
+            if (!data || !data.grades || data.grades.length === 0) return 0;
+            const totalPct = data.grades.reduce((sum, g) => sum + g.percentage, 0);
+            return Math.round(totalPct / data.grades.length);
+        }
+
+        function getSubjectAverage(data, subjectId) {
+            const subjectGrades = data.grades.filter(g => g.subjectId === subjectId);
+            if (subjectGrades.length === 0) return 0;
+            return Math.round(subjectGrades.reduce((sum, g) => sum + g.percentage, 0) / subjectGrades.length);
+        }
+
+        function getSubjectHealth(avg) {
+            if (avg >= 75) return { label: 'قوي', badge: 'badge-strong', color: '#22C55E' };
+            if (avg >= 60) return { label: 'يحتاج انتباه', badge: 'badge-attention', color: '#F59E0B' };
+            return { label: 'حرج', badge: 'badge-critical', color: '#EF4444' };
+        }
+
+        function getSafetyStatus(avg, threshold) {
+            if (avg >= threshold + 10) return { label: 'آمن', badge: 'badge-safe', color: '#22C55E' };
+            if (avg >= threshold) return { label: 'تحذير', badge: 'badge-warning', color: '#F59E0B' };
+            return { label: 'يحتاج انتباه', badge: 'badge-danger', color: '#EF4444' };
+        }
+
+        function getRandomItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 3000);
+        }
+
+        function getDefaultData() {
+            return {
+                subjects: [],
+                grades: [],
+                attendance: [],
+                studySessions: [],
+                goals: [],
+                notes: [],
+                difficultTopics: [],
+                exams: [],
+                achievements: [],
+                completedQuestions: [],
+                createdAt: getToday(),
+                lastSync: null,
+            };
+        }
+
+        // ============================================
+        // ONLINE SYNC (Firebase)
+        // ============================================
+        async function syncToFirebase() {
+            if (!firebaseReady) {
+                console.warn('⚠️ Firebase غير مهيأ، تم التخطي عن المزامنة');
+                return;
+            }
+            try {
+                await db.collection('users').doc(currentUser.id).set({
+                    appData: appData,
+                    settings: settings,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                console.log('✅ تم الحفظ على Firebase');
+            } catch (error) {
+                console.error('❌ فشل الحفظ على Firebase:', error.code || '', error.message || error);
+                showToast('⚠️ تعذر الحفظ السحابي: ' + (error.code || error.message || 'خطأ غير معروف'));
+            }
+        }
+
+        async function loadFromFirebase() {
+            if (!firebaseReady) return null;
+            try {
+                const doc = await db.collection('users').doc(currentUser.id).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    return {
+                        appData: data.appData || getDefaultData(),
+                        settings: data.settings || { ...DEFAULT_SETTINGS }
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.error('❌ فشل التحميل من Firebase:', error.code || '', error.message || error);
+                return null;
+            }
+        }
+
+        function saveAppData() {
+            const allData = JSON.parse(localStorage.getItem(DB_KEYS.appData) || '{}');
+            allData[currentUser.id] = appData;
+            localStorage.setItem(DB_KEYS.appData, JSON.stringify(allData));
+            syncToFirebase();
+        }
+
+        function saveSettings() {
+            const allSettings = JSON.parse(localStorage.getItem(DB_KEYS.settings) || '{}');
+            allSettings[currentUser.id] = settings;
+            localStorage.setItem(DB_KEYS.settings, JSON.stringify(allSettings));
+            applyDarkMode(settings.darkMode);
+            syncToFirebase();
+        }
+
+        function loadAppDataFromLocal() {
+            const allData = JSON.parse(localStorage.getItem(DB_KEYS.appData) || '{}');
+            appData = allData[currentUser.id] || getDefaultData();
+            if (!appData.subjects) appData.subjects = [];
+            if (!appData.grades) appData.grades = [];
+            if (!appData.attendance) appData.attendance = [];
+            if (!appData.studySessions) appData.studySessions = [];
+            if (!appData.goals) appData.goals = [];
+            if (!appData.notes) appData.notes = [];
+            if (!appData.difficultTopics) appData.difficultTopics = [];
+            if (!appData.exams) appData.exams = [];
+            if (!appData.achievements) appData.achievements = [];
+            if (!appData.completedQuestions) appData.completedQuestions = [];
+        }
+
+        function loadSettingsFromLocal() {
+            const allSettings = JSON.parse(localStorage.getItem(DB_KEYS.settings) || '{}');
+            settings = allSettings[currentUser.id] || { ...DEFAULT_SETTINGS };
+            if (!settings.threshold) settings.threshold = 60;
+            if (!settings.academicYearStart) settings.academicYearStart = '2025-09-01';
+            if (!settings.academicYearEnd) settings.academicYearEnd = '2026-06-15';
+            applyDarkMode(settings.darkMode);
+        }
+
+        function applyDarkMode(dark) {
+            if (dark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+            }
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        async function initApp() {
+            // Load from Firebase first, fallback to local
+            const firebaseData = await loadFromFirebase();
+            if (firebaseData) {
+                appData = firebaseData.appData;
+                settings = firebaseData.settings;
+                // Update local cache
+                localStorage.setItem(DB_KEYS.appData, JSON.stringify({ [currentUser.id]: appData }));
+                localStorage.setItem(DB_KEYS.settings, JSON.stringify({ [currentUser.id]: settings }));
+            } else {
+                loadAppDataFromLocal();
+                loadSettingsFromLocal();
+                if (!appData) appData = getDefaultData();
+                if (!settings) settings = { ...DEFAULT_SETTINGS };
+                syncToFirebase();
+            }
+            applyDarkMode(settings.darkMode);
+            updateUserUI();
+            if (settings.pathway && appData.subjects.length > 0) {
+                showApp();
+            } else {
+                showOnboarding();
+            }
+        }
+
+        function showOnboarding() {
+            document.getElementById('view-onboarding').classList.remove('hidden');
+            document.getElementById('view-app').classList.add('hidden');
+        }
+
+        function showApp() {
+            document.getElementById('view-onboarding').classList.add('hidden');
+            document.getElementById('view-app').classList.remove('hidden');
+            const mobileHeader = document.getElementById('mobile-header');
+            if (window.innerWidth <= 900) {
+                mobileHeader.style.display = 'flex';
+            } else {
+                mobileHeader.style.display = 'none';
+            }
+            renderPage('dashboard');
+        }
+
+        function updateUserUI() {
+            document.getElementById('sidebar-user-name').textContent = currentUser.name;
+            document.getElementById('sidebar-user-email').textContent = currentUser.email;
+        }
+
+        // ============================================
+        // ONBOARDING
+        // ============================================
+        function selectPathway(pathway) {
+            selectedPathway = pathway;
+            document.querySelectorAll('.pathway-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.pathway === pathway);
+            });
+        }
+
+        function completeOnboarding() {
+            if (!selectedPathway) { showToast('⚠️ اختر المسار الأكاديمي'); return; }
+            const yearSelect = document.getElementById('academic-year-select');
+            const year = yearSelect.value;
+            settings.pathway = selectedPathway;
+            settings.studentName = currentUser.name;
+            const [startYear, endYear] = year.split('-');
+            settings.academicYearStart = `${startYear}-09-01`;
+            settings.academicYearEnd = `${endYear}-06-15`;
+            saveSettings();
+
+            const pathwayConfig = PATHWAYS_CONFIG[selectedPathway];
+            appData.subjects = pathwayConfig.subjects.map(s => ({
+                id: generateId(),
+                name: s.name,
+                pathway: selectedPathway,
+                color: s.color,
+                icon: s.icon,
+                targetScore: 80,
+                createdAt: getToday(),
+                type: 'core',
+            }));
+            saveAppData();
+            showToast('✅ تم إعداد عامك الدراسي بنجاح');
+            showApp();
+        }
+
+        // ============================================
+        // NAVIGATION
+        // ============================================
+        function navigateTo(page) {
+            currentPage = page;
+            if (page === 'more') {
+                showToast('📱 استخدم القائمة الجانبية للوصول لجميع الصفحات');
+                return;
+            }
+            document.querySelectorAll('.sidebar-nav a').forEach(a => {
+                a.classList.toggle('active', a.dataset.page === page);
+            });
+            document.querySelectorAll('.bottom-nav .nav-item').forEach(a => {
+                a.classList.toggle('active', a.dataset.page === page);
+            });
+            renderPage(page);
+            toggleSidebar(false);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleSidebar(forceState) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (forceState !== undefined) {
+                sidebar.classList.toggle('open', forceState);
+                overlay.classList.toggle('show', forceState);
+            } else {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('show');
+            }
+        }
+
+        // ============================================
+        // RENDER PAGES
+        // ============================================
+        function renderPage(page) {
+            const container = document.getElementById('page-content');
+            if (!container) return;
+            switch (page) {
+                case 'dashboard':
+                    container.innerHTML = renderDashboard();
+                    break;
+                case 'subjects':
+                    container.innerHTML = renderSubjects();
+                    break;
+                case 'grades':
+                    container.innerHTML = renderGrades();
+                    initGradesChart();
+                    break;
+                case 'attendance':
+                    container.innerHTML = renderAttendance();
+                    initAttendanceCalendar();
+                    break;
+                case 'timer':
+                    container.innerHTML = renderTimer();
+                    break;
+                case 'notes':
+                    container.innerHTML = renderNotes();
+                    break;
+                case 'topics':
+                    container.innerHTML = renderTopics();
+                    break;
+                case 'exams':
+                    container.innerHTML = renderExams();
+                    break;
+                case 'goals':
+                    container.innerHTML = renderGoals();
+                    break;
+                case 'analytics':
+                    container.innerHTML = renderAnalytics();
+                    initAnalyticsCharts();
+                    break;
+                case 'journey':
+                    container.innerHTML = renderJourney();
+                    break;
+                case 'settings':
+                    container.innerHTML = renderSettings();
+                    break;
+                default:
+                    container.innerHTML = renderDashboard();
+            }
+        }
+
+        // ============================================
+        // DASHBOARD
+        // ============================================
+        function renderDashboard() {
+            const avg = getOverallAverage(appData);
+            const threshold = settings.threshold || 60;
+            const safety = getSafetyStatus(avg, threshold);
+            const dayNum = getAcademicYearDay();
+            const totalDays = getAcademicYearTotalDays();
+            const daysRemaining = getDaysRemaining();
+            const yearPct = Math.round((dayNum / totalDays) * 100);
+            const studyMinutes = getTotalStudyMinutes(appData);
+            const attendanceStats = getAttendanceStats(appData);
+            const attendancePct = attendanceStats.total > 0 ? Math.round((attendanceStats.present / attendanceStats.total) *
+                100) : 0;
+            const streak = getStudyStreak(appData);
+            const upcomingExam = appData.exams
+                .filter(e => e.date >= getToday())
+                .sort((a, b) => a.date.localeCompare(b.date))[0];
+            const todayGoal = appData.goals.find(g => g.type === 'يومي' && !g.completed);
+            const motivational = getRandomItem(MOTIVATIONAL_MESSAGES);
+            const islamic = settings.islamicReminders ? getRandomItem(ISLAMIC_REMINDERS) : null;
+            const todayAttendance = appData.attendance.find(a => a.date === getToday());
+            const subjectCount = appData.subjects.length;
+            const gradeCount = appData.grades.length;
+            const unsolvedTopics = appData.difficultTopics.filter(t => t.status !== 'تم الحل').length;
+
+            return `
+            <div class="page-header">
+                <div>
+                    <h2>مرحباً، ${settings.studentName || currentUser.name} 👋</h2>
+                    <p class="text-secondary fs-sm">${formatDate(getToday())}</p>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="showAddGradeModal()">+ إضافة درجة</button>
+                    <button class="btn btn-outline" onclick="navigateTo('timer')">⏱️ بدء دراسة</button>
+                </div>
+            </div>
+
+            <div class="grid-3 mb-16">
+                <div class="card">
+                    <div class="fs-sm text-secondary">اليوم الأكاديمي</div>
+                    <div class="stat-value">${dayNum} / ${totalDays}</div>
+                    <div class="progress-bar mt-8"><div class="fill" style="width:${yearPct}%"></div></div>
+                    <div class="fs-xs text-secondary mt-8">${daysRemaining} يوم متبقٍ · ${yearPct}% مكتمل</div>
+                </div>
+                <div class="card">
+                    <div class="fs-sm text-secondary">متوسط الأداء العام</div>
+                    <div class="stat-value">${avg}%</div>
+                    <div class="mt-8"><span class="stat-badge ${safety.badge}">${safety.label}</span></div>
+                    <div class="fs-xs text-secondary mt-8">الحد الرسمي: ${threshold}%</div>
+                </div>
+                <div class="card">
+                    <div class="fs-sm text-secondary">ساعات الدراسة</div>
+                    <div class="stat-value">${Math.round(studyMinutes / 60)} ساعة</div>
+                    <div class="fs-xs text-secondary mt-8">🔥 سلسلة ${streak} أيام</div>
+                </div>
+            </div>
+
+            <div class="grid-2 mb-16">
+                <div class="card">
+                    <div class="card-title"><span class="icon">🛡️</span> مؤشر الأمان الأكاديمي (${threshold}%)</div>
+                    <div class="flex items-center gap-16">
+                        <div style="flex:1;">
+                            <div class="stat-value" style="color:${safety.color};">${avg}%</div>
+                            <div class="fs-sm text-secondary">أدائك الحالي</div>
+                        </div>
+                        <div style="flex:1;text-align:center;">
+                            <div class="stat-value fs-sm">${threshold}%</div>
+                            <div class="fs-sm text-secondary">الحد الرسمي</div>
+                        </div>
+                        <div style="flex:1;text-align:left;">
+                            <span class="stat-badge ${safety.badge}" style="font-size:1rem;">${safety.label}</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar mt-12" style="height:12px;">
+                        <div class="fill ${avg >= threshold ? 'success' : 'danger'}" style="width:${Math.min(avg,100)}%;background:${safety.color};"></div>
+                    </div>
+                    <p class="fs-xs text-secondary mt-8">⚠️ هذا مؤشر أداء داخلي وليس النتيجة الرسمية النهائية.</p>
+                </div>
+                <div class="card">
+                    <div class="card-title"><span class="icon">✅</span> حضور اليوم</div>
+                    ${todayAttendance ? `
+                        <div class="text-center">
+                            <div style="font-size:3rem;">${todayAttendance.status === 'present' ? '✅' : todayAttendance.status === 'absent' ? '❌' : '⚠️'}</div>
+                            <div class="fw-bold mt-8">${todayAttendance.status === 'present' ? 'حاضر' : todayAttendance.status === 'absent' ? 'غائب' : 'بعذر'}</div>
+                            <div class="fs-sm text-secondary mt-4">نسبة الحضور: ${attendancePct}%</div>
+                        </div>
+                    ` : `
+                        <div class="text-center">
+                            <p class="fs-sm text-secondary mb-12">لم تسجل حضور اليوم بعد</p>
+                            <button class="btn btn-primary btn-sm" onclick="markAttendanceToday('present')">✅ تم الحضور</button>
+                        </div>
+                    `}
+                </div>
+            </div>
+
+            <div class="grid-3 mb-16">
+                <div class="card">
+                    <div class="card-title"><span class="icon">📅</span> الامتحان القادم</div>
+                    ${upcomingExam ? `
+                        <div class="fw-bold">${upcomingExam.name}</div>
+                        <div class="fs-sm text-secondary">${upcomingExam.subjectName || 'مادة'}</div>
+                        <div class="fs-sm text-primary mt-8">📅 ${formatDate(upcomingExam.date)}</div>
+                        <div class="fs-sm mt-4">⏰ ${upcomingExam.time || '—'}</div>
+                        <div class="tag warning mt-8">${getDaysBetween(getToday(), upcomingExam.date)} يوم متبقٍ</div>
+                    ` : '<p class="fs-sm text-secondary">لا توجد امتحانات قادمة</p>'}
+                </div>
+                <div class="card">
+                    <div class="card-title"><span class="icon">🎯</span> هدف اليوم</div>
+                    ${todayGoal ? `
+                        <div class="fw-bold">${todayGoal.title}</div>
+                        <div class="fs-xs text-secondary mt-4">${todayGoal.description || ''}</div>
+                        <button class="btn btn-sm btn-outline mt-8" onclick="toggleGoalComplete('${todayGoal.id}')">${todayGoal.completed ? '✅ مكتمل' : 'تحديد كمكتمل'}</button>
+                    ` : '<p class="fs-sm text-secondary">لا يوجد هدف لليوم</p>'}
+                </div>
+                <div class="card">
+                    <div class="card-title"><span class="icon">❓</span> مواضيع تحتاج مراجعة</div>
+                    ${unsolvedTopics > 0 ? `
+                        <div class="stat-value text-warning">${unsolvedTopics}</div>
+                        <div class="fs-xs text-secondary">موضوع صعب غير محلول</div>
+                        <button class="btn btn-sm btn-outline mt-8" onclick="navigateTo('topics')">عرض المواضيع</button>
+                    ` : '<p class="fs-sm text-secondary">🎉 لا توجد مواضيع معلقة!</p>'}
+                </div>
+            </div>
+
+            <div class="grid-2 mb-16">
+                <div class="card">
+                    <div class="card-title"><span class="icon">📚</span> أداء المواد</div>
+                    <div style="max-height:220px;overflow-y:auto;">
+                        ${appData.subjects.length === 0 ? '<p class="fs-sm text-secondary">لا توجد مواد</p>' : appData.subjects.map(s => {
+                            const sAvg = getSubjectAverage(appData, s.id);
+                            const health = getSubjectHealth(sAvg);
+                            return `<div class="flex items-center gap-8 mb-8">
+                                <span style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0;"></span>
+                                <span class="fs-sm" style="flex:1;">${s.icon} ${s.name}</span>
+                                <span class="fw-bold fs-sm">${sAvg}%</span>
+                                <span class="tag ${health.badge === 'badge-strong' ? 'success' : health.badge === 'badge-attention' ? 'warning' : 'danger'}">${health.label}</span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title"><span class="icon">📊</span> نظرة سريعة</div>
+                    <div class="grid-2">
+                        <div class="text-center">
+                            <div class="stat-value">${subjectCount}</div>
+                            <div class="fs-xs text-secondary">مادة</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="stat-value">${gradeCount}</div>
+                            <div class="fs-xs text-secondary">تقييم</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="stat-value">${attendanceStats.present}</div>
+                            <div class="fs-xs text-secondary">يوم حضور</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="stat-value">${appData.goals.filter(g => g.completed).length}</div>
+                            <div class="fs-xs text-secondary">هدف مكتمل</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span class="icon">💬</span> رسالة اليوم</div>
+                <p class="text-center" style="font-size:1.1rem;color:var(--primary);">${motivational}</p>
+                ${islamic ? `<p class="text-center fs-sm text-secondary mt-8">${islamic}</p>` : ''}
+            </div>
+            `;
+        }
+
+        // ============================================
+        // SUBJECTS
+        // ============================================
+        function renderSubjects() {
+            const subjects = appData.subjects;
+            return `
+            <div class="page-header">
+                <h2>📚 المواد الدراسية</h2>
+                <button class="btn btn-primary" onclick="showAddSubjectModal()">+ إضافة مادة</button>
+            </div>
+            ${subjects.length === 0 ? `
+                <div class="card empty-state">
+                    <div class="empty-icon">📚</div>
+                    <p>لا توجد مواد. أضف مادة أو اختر مساراً من الإعدادات.</p>
+                </div>
+            ` : `
+                <div class="grid-3">
+                    ${subjects.map(s => {
+                        const sAvg = getSubjectAverage(appData, s.id);
+                        const health = getSubjectHealth(sAvg);
+                        const gradeCount = appData.grades.filter(g => g.subjectId === s.id).length;
+                        const studyMinutes = appData.studySessions.filter(st => st.subjectId === s.id).reduce((sum, st) => sum + (st.durationMinutes || 0), 0);
+                        return `
+                        <div class="card">
+                            <div class="flex items-center gap-12 mb-12">
+                                <span style="font-size:2rem;">${s.icon || '📘'}</span>
+                                <div style="flex:1;">
+                                    <div class="fw-bold">${s.name}</div>
+                                    <div class="fs-xs text-secondary">${gradeCount} تقييم · ${Math.round(studyMinutes/60)} ساعة</div>
+                                </div>
+                                <span class="tag ${health.badge === 'badge-strong' ? 'success' : health.badge === 'badge-attention' ? 'warning' : 'danger'}">${health.label}</span>
+                            </div>
+                            <div class="flex items-center gap-8">
+                                <span class="fs-sm">المتوسط:</span>
+                                <span class="fw-bold" style="color:${health.color};">${sAvg}%</span>
+                            </div>
+                            <div class="progress-bar mt-8">
+                                <div class="fill" style="width:${sAvg}%;background:${s.color};"></div>
+                            </div>
+                            <div class="flex gap-8 mt-12">
+                                <button class="btn btn-sm btn-outline" onclick="showAddGradeModal('${s.id}')">+ درجة</button>
+                                <button class="btn btn-sm btn-outline" onclick="editSubject('${s.id}')">✏️</button>
+                                <button class="btn btn-sm btn-outline" onclick="deleteSubject('${s.id}')">🗑️</button>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            `}
+            `;
+        }
+
+        function showAddSubjectModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3>إضافة مادة</h3>
+                    <div class="form-group"><label>اسم المادة</label><input id="new-subject-name" placeholder="مثال: الرياضيات"></div>
+                    <div class="form-group"><label>اللون</label><input type="color" id="new-subject-color" value="#3B82F6" style="height:40px;padding:4px;"></div>
+                    <div class="form-group"><label>الأيقونة</label><input id="new-subject-icon" placeholder="📘" value="📘"></div>
+                    <div class="form-group"><label>الدرجة المستهدفة (%)</label><input type="number" id="new-subject-target" value="80" min="0" max="100"></div>
+                    <div class="flex gap-8">
+                        <button class="btn btn-primary" onclick="addSubject()">حفظ</button>
+                        <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        function addSubject() {
+            const name = document.getElementById('new-subject-name').value.trim();
+            if (!name) { showToast('⚠️ أدخل اسم المادة'); return; }
+            const color = document.getElementById('new-subject-color').value;
+            const icon = document.getElementById('new-subject-icon').value.trim() || '📘';
+            const target = parseInt(document.getElementById('new-subject-target').value) || 80;
+            appData.subjects.push({
+                id: generateId(),
+                name,
+                pathway: settings.pathway || 'custom',
+                color,
+                icon,
+                targetScore: target,
+                createdAt: getToday(),
+            });
+            saveAppData();
+            closeModal();
+            renderPage('subjects');
+            showToast('✅ تمت إضافة المادة');
+        }
+
+        function editSubject(id) {
+            const subject = appData.subjects.find(s => s.id === id);
+            if (!subject) return;
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3>تعديل المادة</h3>
+                    <div class="form-group"><label>اسم المادة</label><input id="edit-subject-name" value="${subject.name}"></div>
+                    <div class="form-group"><label>اللون</label><input type="color" id="edit-subject-color" value="${subject.color}" style="height:40px;padding:4px;"></div>
+                    <div class="form-group"><label>الأيقونة</label><input id="edit-subject-icon" value="${subject.icon || '📘'}"></div>
+                    <div class="form-group"><label>الدرجة المستهدفة (%)</label><input type="number" id="edit-subject-target" value="${subject.targetScore || 80}" min="0" max="100"></div>
+                    <div class="flex gap-8">
+                        <button class="btn btn-primary" onclick="updateSubject('${id}')">حفظ</button>
+                        <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        function updateSubject(id) {
+            const subject = appData.subjects.find(s => s.id === id);
+            if (!subject) return;
+            subject.name = document.getElementById('edit-subject-name').value.trim() || subject.name;
+            subject.color = document.getElementById('edit-subject-color').value;
+            subject.icon = document.getElementById('edit-subject-icon').value.trim() || subject.icon;
+            subject.targetScore = parseInt(document.getElementById('edit-subject-target').value) || 80;
+            saveAppData();
+            closeModal();
+            renderPage('subjects');
+            showToast('✅ تم تحديث المادة');
+        }
+
+        function deleteSubject(id) {
+            if (!confirm('هل تريد حذف هذه المادة وجميع بياناتها؟')) return;
+            appData.subjects = appData.subjects.filter(s => s.id !== id);
+            appData.grades = appData.grades.filter(g => g.subjectId !== id);
+            saveAppData();
+            renderPage('subjects');
+            showToast('🗑️ تم حذف المادة');
+        }
+
+        // ============================================
+        // GRADES
+        // ============================================
+        function renderGrades() {
+            const grades = appData.grades.sort((a, b) => b.date.localeCompare(a.date));
+            const avg = getOverallAverage(appData);
+            const threshold = settings.threshold || 60;
+            const safety = getSafetyStatus(avg, threshold);
+            return `
+            <div class="page-header">
+                <h2>📝 الدرجات والتقييمات</h2>
+                <button class="btn btn-primary" onclick="showAddGradeModal()">+ إضافة درجة</button>
+            </div>
+            <div class="grid-3 mb-16">
+                <div class="card text-center">
+                    <div class="stat-value">${grades.length}</div>
+                    <div class="fs-xs text-secondary">إجمالي التقييمات</div>
+                </div>
+                <div class="card text-center">
+                    <div class="stat-value">${avg}%</div>
+                    <div class="fs-xs text-secondary">المتوسط العام</div>
+                    <span class="stat-badge ${safety.badge} mt-8">${safety.label}</span>
+                </div>
+                <div class="card text-center">
+                    <div class="stat-value">${threshold}%</div>
+                    <div class="fs-xs text-secondary">الحد الرسمي</div>
+                </div>
+            </div>
+            ${grades.length === 0 ? `
+                <div class="card empty-state">
+                    <div class="empty-icon">📝</div>
+                    <p>لا توجد درجات. أضف أول تقييم لك!</p>
+                </div>
+            ` : `
+                <div class="card mb-16">
+                    <div class="card-title">📈 توزيع الدرجات</div>
+                    <div class="chart-container"><canvas id="grades-chart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📋 سجل الدرجات</div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>المادة</th><th>النوع</th><th>العنوان</th><th>الدرجة</th><th>النسبة</th><th>التاريخ</th></tr></thead>
+                            <tbody>
+                                ${grades.map(g => {
+                                    const subject = appData.subjects.find(s => s.id === g.subjectId);
+                                    return `<tr>
+                                        <td>${subject ? subject.icon + ' ' + subject.name : '—'}</td>
+                                        <td><span class="tag">${g.assessmentType}</span></td>
+                                        <td>${g.title}</td>
+                                        <td>${g.score} / ${g.maxScore}</td>
+                                        <td class="fw-bold" style="color:${g.percentage >= threshold ? 'var(--success)' : 'var(--danger)'};">${g.percentage}%</td>
+                                        <td class="fs-sm">${formatDate(g.date)}</td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `}
+            `;
+        }
+
+        function initGradesChart() {
+            const canvas = document.getElementById('grades-chart');
+            if (!canvas || typeof Chart === 'undefined') return;
+            const grades = appData.grades.slice().sort((a, b) => a.date.localeCompare(b.date));
+            if (grades.length < 2) return;
+            const labels = grades.map(g => formatDate(g.date));
+            const data = grades.map(g => g.percentage);
+            new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'النسبة المئوية',
+                        data,
+                        borderColor: '#1E40AF',
+                        backgroundColor: 'rgba(30,64,175,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: data.map(d => d >= (settings.threshold || 60) ?
+                            '#22C55E' : '#EF4444'),
+                        pointRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { min: 0, max: 100, grid: { color: 'rgba(100,116,139,0.15)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function showAddGradeModal(presetSubjectId) {
+            const subjects = appData.subjects;
+            if (subjects.length === 0) { showToast('⚠️ أضف مادة أولاً'); return; }
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3>+ إضافة درجة</h3>
+                    <div class="form-group">
+                        <label>المادة</label>
+                        <select id="grade-subject">
+                            ${subjects.map(s => `<option value="${s.id}" ${s.id === presetSubjectId ? 'selected' : ''}>${s.icon} ${s.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>نوع التقييم</label>
+                        <select id="grade-type">${ASSESSMENT_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
+                    </div>
+                    <div class="form-group"><label>عنوان التقييم</label><input id="grade-title" placeholder="مثال: امتحان منتصف الفصل"></div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>الدرجة</label><input type="number" id="grade-score" placeholder="18" min="0"></div>
+                        <div class="form-group"><label>الدرجة القصوى</label><input type="number" id="grade-max" placeholder="20" min="1"></div>
+                    </div>
+                    <div class="form-group"><label>التاريخ</label><input type="date" id="grade-date" value="${getToday()}"></div>
+                    <div class="form-group"><label>ملاحظات (اختياري)</label><textarea id="grade-notes" placeholder="ملاحظات إضافية..."></textarea></div>
+                    <div class="flex gap-8">
+                        <button class="btn btn-primary" onclick="addGrade()">حفظ</button>
+                        <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        function addGrade() {
+            const subjectId = document.getElementById('grade-subject').value;
+            const assessmentType = document.getElementById('grade-type').value;
+            const title = document.getElementById('grade-title').value.trim() || assessmentType;
+            const score = parseFloat(document.getElementById('grade-score').value);
+            const maxScore = parseFloat(document.getElementById('grade-max').value);
+            const date = document.getElementById('grade-date').value || getToday();
+            const notes = document.getElementById('grade-notes').value.trim();
+            if (!subjectId || !score || !maxScore || score < 0 || maxScore <= 0 || score > maxScore) {
+                showToast('⚠️ تأكد من إدخال درجات صحيحة');
+                return;
+            }
+            const percentage = Math.round((score / maxScore) * 100);
+            appData.grades.push({
+                id: generateId(),
+                subjectId,
+                assessmentType,
+                title,
+                score,
+                maxScore,
+                percentage,
+                date,
+                notes,
+                createdAt: new Date().toISOString(),
+            });
+            saveAppData();
+            closeModal();
+            renderPage('grades');
+            showToast(`✅ تمت إضافة الدرجة (${percentage}%)`);
+        }
+
+        // ============================================
+        // ATTENDANCE
+        // ============================================
+        function renderAttendance() {
+            const stats = getAttendanceStats(appData);
+            const attendancePct = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
+            const streak = getAttendanceStreak(appData);
+            const monthAttendance = getMonthAttendance(appData);
+            return `
+            <div class="page-header">
+                <h2>✅ الحضور والغياب</h2>
+                <button class="btn btn-primary" onclick="markAttendanceToday('present')">✅ تم الحضور اليوم</button>
+            </div>
+            <div class="grid-4 mb-16">
+                <div class="card text-center">
+                    <div class="stat-value text-success">${stats.present}</div>
+                    <div class="fs-xs text-secondary">أيام الحضور</div>
+                </div>
+                <div class="card text-center">
+                    <div class="stat-value text-danger">${stats.absent}</div>
+                    <div class="fs-xs text-secondary">أيام الغياب</div>
+                </div>
+                <div class="card text-center">
+                    <div class="stat-value text-warning">${stats.excused}</div>
+                    <div class="fs-xs text-secondary">أيام بعذر</div>
+                </div>
+                <div class="card text-center">
+                    <div class="stat-value">${attendancePct}%</div>
+                    <div class="fs-xs text-secondary">نسبة الحضور</div>
+                </div>
+            </div>
+            <div class="grid-2 mb-16">
+                <div class="card">
+                    <div class="card-title">🔥 سلسلة الحضور</div>
+                    <div class="stat-value">${streak} يوم</div>
+                    <p class="fs-sm text-secondary mt-8">استمر في الحضور للحفاظ على سلسلتك!</p>
+                </div>
+                <div class="card">
+                    <div class="card-title">📊 حضور هذا الشهر</div>
+                    <div class="stat-value">${monthAttendance.present} / ${monthAttendance.total}</div>
+                    <div class="progress-bar mt-8">
+                        <div class="fill success" style="width:${monthAttendance.total > 0 ? Math.round((monthAttendance.present / monthAttendance.total) * 100) : 0}%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">📅 تقويم الحضور</div>
+                <p class="fs-sm text-secondary mb-12">اضغط على أي يوم لتغيير حالته</p>
+                <div id="attendance-calendar"></div>
+                <div class="flex gap-16 mt-16 fs-sm">
+                    <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--success);margin-left:4px;"></span>حاضر</span>
+                    <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--danger);margin-left:4px;"></span>غائب</span>
+                    <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--warning);margin-left:4px;"></span>بعذر</span>
+                    <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--border);margin-left:4px;"></span>بدون تسجيل</span>
+                </div>
+            </div>
+            `;
+        }
+
+        function getAttendanceStreak(data) {
+            const presentDates = new Set(data.attendance.filter(a => a.status === 'present').map(a => a.date));
+            let streak = 0;
+            const today = new Date();
+            for (let i = 0; i < 365; i++) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                const dateStr = d.toISOString().split('T')[0];
+                if (presentDates.has(dateStr)) {
+                    streak++;
+                } else if (i === 0) {
+                    continue;
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        function getMonthAttendance(data) {
+            const now = new Date();
+            const monthStr = now.toISOString().substr(0, 7);
+            const monthRecords = data.attendance.filter(a => a.date.startsWith(monthStr));
+            const present = monthRecords.filter(a => a.status === 'present').length;
+            return { present, total: monthRecords.length };
+        }
+
+        function initAttendanceCalendar() {
+            const container = document.getElementById('attendance-calendar');
+            if (!container) return;
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const attendanceMap = {};
+            appData.attendance.forEach(a => { attendanceMap[a.date] = a.status; });
+
+            let html = '<div class="calendar-grid">';
+            const weekDays = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+            weekDays.forEach(d => { html += `<div class="fs-xs text-center text-secondary fw-bold">${d}</div>`; });
+            for (let i = 0; i < firstDay; i++) { html += '<div></div>'; }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                const status = attendanceMap[dateStr] || '';
+                const cls = status ? `calendar-cell ${status}` : 'calendar-cell';
+                html +=
+                    `<div class="${cls}" onclick="cycleAttendance('${dateStr}')" title="${dateStr}"><span class="day-num">${day}</span></div>`;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function cycleAttendance(dateStr) {
+            const existing = appData.attendance.find(a => a.date === dateStr);
+            const statuses = ['present', 'absent', 'excused', ''];
+            if (!existing) {
+                appData.attendance.push({ id: generateId(), date: dateStr, status: 'present', note: '' });
+            } else {
+                const currentIdx = statuses.indexOf(existing.status);
+                const nextStatus = statuses[(currentIdx + 1) % statuses.length];
+                if (nextStatus === '') {
+                    appData.attendance = appData.attendance.filter(a => a.date !== dateStr);
+                } else {
+                    existing.status = nextStatus;
+                }
+            }
+            saveAppData();
+            renderPage('attendance');
+        }
+
+        function markAttendanceToday(status) {
+            const today = getToday();
+            const existing = appData.attendance.find(a => a.date === today);
+            if (existing) {
+                existing.status = status;
+            } else {
+                appData.attendance.push({ id: generateId(), date: today, status, note: '' });
+            }
+            saveAppData();
+            const statusLabels = { present: '✅ تم تسجيل حضورك', absent: '❌ تم تسجيل غيابك', excused: '⚠️ تم تسجيل غياب بعذر' };
+            showToast(statusLabels[status] || 'تم التسجيل');
+            renderPage(currentPage);
+        }
+
+        // ============================================
+        // STUDY TIMER
+        // ============================================
+        function renderTimer() {
+            const subjects = appData.subjects;
+            const sessions = appData.studySessions.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+            const totalMin = getTotalStudyMinutes(appData);
+            return `
+            <div class="page-header">
+                <h2>⏱️ مؤقت الدراسة</h2>
+            </div>
+            <div class="grid-2 mb-16">
+                <div class="card">
+                    <div class="card-title">🎯 جلسة تركيز</div>
+                    <div class="form-group">
+                        <label>المادة</label>
+                        <select id="timer-subject">
+                            <option value="">— اختر المادة —</option>
+                            ${subjects.map(s => `<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>المدة</label>
+                        <select id="timer-duration">
+                            <option value="25">25 دقيقة</option>
+                            <option value="45">45 دقيقة</option>
+                            <option value="50">50 دقيقة</option>
+                            <option value="60">60 دقيقة</option>
+                            <option value="custom">مخصص</option>
+                        </select>
+                    </div>
+                    <div class="form-group hidden" id="timer-custom-group">
+                        <label>مدة مخصصة (دقائق)</label>
+                        <input type="number" id="timer-custom-minutes" value="30" min="1" max="180">
+                    </div>
+                    <div class="timer-display" id="timer-display">25:00</div>
+                    <div class="flex gap-8" style="justify-content:center;">
+                        <button class="btn btn-primary btn-lg" id="timer-start-btn" onclick="startTimer()">▶️ بدء</button>
+                        <button class="btn btn-outline btn-lg hidden" id="timer-pause-btn" onclick="pauseTimer()">⏸️ إيقاف مؤقت</button>
+                        <button class="btn btn-danger btn-lg hidden" id="timer-stop-btn" onclick="stopTimer()">⏹️ إنهاء</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📊 إحصائيات الدراسة</div>
+                    <div class="text-center mb-16">
+                        <div class="stat-value">${Math.round(totalMin / 60)} ساعة</div>
+                        <div class="fs-xs text-secondary">إجمالي وقت الدراسة</div>
+                    </div>
+                    <div class="grid-2 mb-16">
+                        <div class="text-center"><div class="stat-value fs-sm">${appData.studySessions.length}</div><div class="fs-xs text-secondary">جلسة</div></div>
+                        <div class="text-center"><div class="stat-value fs-sm">${getStudyStreak(appData)}</div><div class="fs-xs text-secondary">سلسلة أيام</div></div>
+                    </div>
+                    <div class="fs-sm fw-bold mb-8">آخر الجلسات:</div>
+                    ${sessions.length === 0 ? '<p class="fs-sm text-secondary">لا توجد جلسات بعد</p>' : sessions.map(s => {
+                        const subject = appData.subjects.find(sub => sub.id === s.subjectId);
+                        return `<div class="flex items-center gap-8 mb-4 fs-sm">
+                            <span>${subject ? subject.icon : '📘'} ${subject ? subject.name : 'مادة'}</span>
+                            <span class="text-secondary">${s.durationMinutes} دقيقة</span>
+                            <span class="text-secondary">${formatDate(s.date)}</span>
+                            ${s.accomplishment ? `<span class="tag primary">${s.accomplishment}</span>` : ''}
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+            `;
+        }
+
+        function startTimer() {
+            const subjectId = document.getElementById('timer-subject').value;
+            const durationSelect = document.getElementById('timer-duration').value;
+            if (!subjectId) { showToast('⚠️ اختر المادة أولاً'); return; }
+            let durationMin;
+            if (durationSelect === 'custom') {
+                durationMin = parseInt(document.getElementById('timer-custom-minutes').value) || 30;
+            } else {
+                durationMin = parseInt(durationSelect);
+            }
+            timerTotalSeconds = durationMin * 60;
+            timerSeconds = timerTotalSeconds;
+            timerSubjectId = subjectId;
+            timerRunning = true;
+            updateTimerDisplay();
+            document.getElementById('timer-start-btn').classList.add('hidden');
+            document.getElementById('timer-pause-btn').classList.remove('hidden');
+            document.getElementById('timer-stop-btn').classList.remove('hidden');
+            document.getElementById('timer-display').classList.add('running');
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (timerSeconds > 0) {
+                    timerSeconds--;
+                    updateTimerDisplay();
+                } else {
+                    completeTimerSession();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            timerRunning = false;
+            clearInterval(timerInterval);
+            document.getElementById('timer-pause-btn').textContent = '▶️ استئناف';
+            document.getElementById('timer-pause-btn').onclick = resumeTimer;
+            document.getElementById('timer-display').classList.remove('running');
+        }
+
+        function resumeTimer() {
+            timerRunning = true;
+            document.getElementById('timer-pause-btn').textContent = '⏸️ إيقاف مؤقت';
+            document.getElementById('timer-pause-btn').onclick = pauseTimer;
+            document.getElementById('timer-display').classList.add('running');
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (timerSeconds > 0) {
+                    timerSeconds--;
+                    updateTimerDisplay();
+                } else {
+                    completeTimerSession();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            const elapsed = timerTotalSeconds - timerSeconds;
+            const minutes = Math.round(elapsed / 60);
+            if (minutes > 0) {
+                saveStudySession(minutes);
+            }
+            resetTimer();
+            showToast(`⏹️ تم إنهاء الجلسة (${minutes} دقيقة)`);
+            renderPage('timer');
+        }
+
+        function updateTimerDisplay() {
+            const display = document.getElementById('timer-display');
+            if (display) display.textContent = formatTime(timerSeconds);
+        }
+
+        function completeTimerSession() {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            const minutes = Math.round(timerTotalSeconds / 60);
+            saveStudySession(minutes);
+            resetTimer();
+            showToast('🎉 اكتملت جلسة الدراسة!');
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3>ما الذي أنجزته؟</h3>
+                    <div class="form-group">
+                        <select id="session-accomplishment">
+                            <option value="فصل مكتمل">فصل مكتمل</option>
+                            <option value="تمارين محلولة">تمارين محلولة</option>
+                            <option value="مراجعة">مراجعة</option>
+                            <option value="واجب">واجب</option>
+                            <option value="قراءة">قراءة</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="updateLastSessionAccomplishment()">حفظ</button>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+            renderPage('timer');
+        }
+
+        function updateLastSessionAccomplishment() {
+            const accomplishment = document.getElementById('session-accomplishment').value;
+            if (appData.studySessions.length > 0) {
+                const last = appData.studySessions[appData.studySessions.length - 1];
+                last.accomplishment = accomplishment;
+                saveAppData();
+            }
+            closeModal();
+            showToast('✅ تم حفظ الإنجاز');
+            renderPage('timer');
+        }
+
+        function saveStudySession(minutes) {
+            appData.studySessions.push({
+                id: generateId(),
+                subjectId: timerSubjectId,
+                durationMinutes: minutes,
+                date: getToday(),
+                accomplishment: '',
+                createdAt: new Date().toISOString(),
+            });
+            saveAppData();
+        }
+
+        function resetTimer() {
+            timerSeconds = 0;
+            timerTotalSeconds = 0;
+            timerSubjectId = null;
+            timerRunning = false;
+            clearInterval(timerInterval);
+            const startBtn = document.getElementById('timer-start-btn');
+            const pauseBtn = document.getElementById('timer-pause-btn');
+            const stopBtn = document.getElementById('timer-stop-btn');
+            const display = document.getElementById('timer-display');
+            if (startBtn) startBtn.classList.remove('hidden');
+            if (pauseBtn) { pauseBtn.classList.add('hidden');
+                pauseBtn.textContent = '⏸️ إيقاف مؤقت';
+                pauseBtn.onclick = pauseTimer; }
+            if (stopBtn) stopBtn.classList.add('hidden');
+            if (display) { display.textContent = '25:00';
+                display.classList.remove('running'); }
+        }
+
+        // ============================================
+        // NOTES
+        // ============================================
+        function renderNotes() {
+            const notes = appData.notes.slice().sort((a, b) => b.date.localeCompare(a.date));
+            return `
+            <div class="page-header">
+                <h2>🗒️ الملاحظات</h2>
+                <button class="btn btn-primary" onclick="showAddNoteModal()">+ ملاحظة جديدة</button>
+            </div>
+            ${notes.length === 0 ? `
+                <div class="card empty-state">
+                    <div class="empty-icon">🗒️</div>
+                    <p>لا توجد ملاحظات. ابدأ بتدوين أفكارك!</p>
+                </div>
+            ` : `
+                <div class="grid-3">
+                    ${notes.map(n => `
+                        <div class="card">
+                            <div class="flex items-center gap-8 mb-8">
+                                <span class="fw-bold" style="flex:1;">${n.title}</span>
+                                ${n.favorite ? '<span>⭐</span>' : ''}
+                            </div>
+                            <p class="fs-sm text-secondary mb-8">${n.content.length > 100 ? n.content.substring(0,100) + '...' : n.content}</p>
+                            <div class="flex gap-4 mb-8 flex-wrap">
+                                ${(n.tags || []).map(t => `<span class="tag primary">${t}</span>`).join('')}
+                            </div>
+                            <div class="fs-xs text-secondary mb-12">${formatDate(n.date)}</div>
+                            <div class="flex gap-8">
+                                <button class="btn btn-sm btn-outline" onclick="toggleNoteFavorite('${n.id}')">${n.favorite ? '⭐' : '☆'}</button>
+                                <button class="btn btn-sm btn-outline" onclick="editNote('${n.id}')">✏️</button>
+                                <button class="btn btn-sm btn-outline" onclick="deleteNote('${n.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `}
+            `;
+        }
+
+        function showAddNoteModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3>+ ملاحظة جديدة</h3>
+                    <div class="form-group"><label>العنوان</label><input id="note-title" placeholder="عنوان الملاحظة"></div>
+                    <div class="form-group"><label>المحتوى</label><textarea id="note-content" placeholder="اكتب ملاحظتك هنا..." rows="4"></textarea></div>
+                    <div class="form-group"><label>الوسوم (مفصولة بفواصل)</label><input id="note-tags" placeholder="مادة، فصل، مهم"></div>
+                    <div class="flex gap-8">
+                        <button class="btn btn-primary" onclick="addNote()">حفظ</button>
+                        <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        function addNote() {
+            const title = document.getElementById('note-title').value.trim();
+            const content = document.getElementById('note-content').value.trim();
+            if (!title || !content) { showToast('⚠️ أدخل العنوان والمحتوى'); return; }
+            const tags = document.getElementById('note-tags').value.split(',').map(t => t.trim()).filter(t => t);
+            appData.notes.push({
+                id: generateId(),
+                title,
+                content,
+                tags,
+                date: getToday(),
+                favorite: false,
+                createdAt: new Date().toISOString(),
+            });
+            saveAppData();
+            closeModal();
+            renderPage('notes');
+            showToast('✅ تمت إضافة الملاحظة');
+        }
+
+        function toggleNoteFavorite(id) {
+            const note = appData.notes.find(n => n.id === id);
+            if (note) { note.favorite = !note.favorite;
+                saveAppData();
+                renderPage('notes'); }
+        }
+
+        function editNote(id) {
+            const note = appData.notes.find(n => n.id === id);
+            if (!note) return;
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3>تعديل الملاحظة</h3>
+                    <div class="form-group"><label>العنوان</label><input id="edit-note-title" value="${note.title}"></div>
+                    <div class="form-group"><label>المحتوى</label><textarea id="edit-note-content" rows="4">${note.content}</textarea></div>
+                    <div class="form-group"><label>الوسوم</label><input id="edit-note-tags" value="${(note.tags || []).join(', ')}"></div>
+                    <div class="flex gap-8">
+                        <button class="btn btn-primary" onclick="updateNote('${id}')">حفظ</button>
+                        <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        function updateNote(id) {
+            const note = appData.notes.find(n => n.id === id);
+            if (!note) return;
+            note.title = document.getElementById('edit-note-title').value.trim() || note.title;
+            note.content = document.getElementById('edit-note-content').value.trim() || note.content;
+            note.tags = document.getElementById('edit-note-tags').value.split(',').map(t => t.trim()).filter(t => t);
+            saveAppData();
+            closeModal();
+            renderPage('notes');
+            showToast('✅ تم تحديث الملاحظة');
+        }
+
+        function deleteNote(id) {
+            if (!confirm('حذف هذه الملاحظة؟')) return;
+            appData.notes = appData.notes.filter(n => n.id !== id);
+            saveAppData();
+            renderPage('notes');
+            showToast('🗑️ تم حذف الملاحظة');
+        }
+
+        // ============================================
+        // DIFFICULT TOPICS
+        // ============================================
+        function renderTopics() {
+            const topics = appData.difficultTopics.slice().sort((a, b) => b.date.localeCompare(a.date));
+            const solved = topics.filter(t => t.status === 'تم الحل').length;
+            const remaining = topics.length - solved;
+            return `
+            <div class="page-header">
+                <h2>❓ المواضيع الصعبة</h2>
+                <button class="btn btn-primary" onclick="showAddTopicModal()">+ موضوع جديد</button>
+            </div>
+            <div class="grid-3 mb-16">
+                <div class="card text-center">
+                    <div class="stat-value">${topics.length}</div>
+                    <div class="fs-xs text-secondary">إجمالي المواضيع</div>
+                </div>
+                <div class="card text-center">
+                    <div class="stat-value text-success">${solved}</div>
+                    <div class="fs-xs text-secondary">تم حلها</div>
+                </div>
+                <div class="card text-center">
+                    <div class="stat-value text-warning">${remaining}</div>
+                    <div class="fs-xs text-secondary">متبقية</div>
+                </div>
+            </div>
+            ${topics.length === 0 ? `
+                <div class="card empty-state">
+                    <div class="empty-icon">❓</div>
+                    <p>لا توجد مواضيع صعبة. سجل المواضيع التي تواجه صعوبة فيها!</p>
+                </div>
+            ` : `
+                <div class="card">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>المادة</th><th>الفصل</th><th>الموضوع</th><th>الصعوبة</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+                            <tbody>
+                                ${topics.map(t => {
+                                    const subject = appData.subjects.find(s => s.id === t.subjectId);
+                                    const statusCls = t.status === 'لم أبدأ' ? 'not-started' : t.status === 'أتعلم' ? 'learning' : t.status === 'فهمت' ? 'understood' : 'solved';
+                                    return `<tr>
+                                        <td>${subject ? subject.icon + ' ' + subject.name : '—'}</td>
+                                        <td>${t.chapter || '—'}</td>
+                                        <td>${t.topic}</td>
+                                        <td><span class="tag ${t.difficulty === 'صعب جداً' ? 'danger' : t.difficulty === 'صعب' ? 'warning' : ''}">${t.difficulty || '—'}</span></td>
+                                        <td><span class="topic-status ${statusCls}">${t.status}</span></td>
+                                        <td class="fs-sm">${formatDate(t.date)}</td>
+                                        <td><button class="btn btn-sm btn-outline" onclick="cycleTopicStatus('${t.id}')">🔄</button></td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `}
+            `;
+        }
+
+        function showAddTopicModal() {
+            const subjects = appData.subjects;
+            if (subjects.length === 0) { showToast('⚠️ أضف مادة أولاً'); return; }
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3>+ موضوع صعب</h3>
+                    <div class="form-group"><label>المادة</label><select id="topic-subject">${subjects.map(s => `<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>الفصل</label><input id="topic-chapter" placeholder="مثال: الجبر"></div>
+                    <div class="form-group"><label>الموضوع</label><input id="topic-name" placeholder="مثال: المعادلات التربيعية"></div>
+                    <div class="form-group"><label>الوصف</label><textarea id="topic-desc" placeholder="ما الذي تجده صعباً؟" rows="2"></textarea></div>
+                    <div class="form-group"><label>مستوى الصعوبة</label><select id="topic-difficulty">${DIFFICULTY_LEVELS.map(d => `<option value="${d}">${d}</option>`).join('')}</select></div>
+                    <div class="flex gap-8">
+                        <button class="btn btn-primary" onclick="addTopic()">حفظ</button>
+                        <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        function addTopic() {
+            const subjectId = document.getElementById('topic-subject').value;
+            const chapter = document.getElementById('topic-chapter').value.trim();
+            const topic = document.getElementById('topic-name').value.trim();
+            if (!topic) { showToast('⚠️ أدخل الموضوع'); return; }
+            appData.difficultTopics.push({
+                id: generateId(),
+                subjectId,
+                chapter,
+                topic,
+                description: document.getElementById('topic-desc').value.trim(),
+                difficulty: document.getElementById('topic-difficulty').value,
+                status: 'لم أبدأ',
+                date: getToday(),
+                createdAt: new Date().toISOString(),
+            });
+            saveAppData();
+            closeModal();
+            renderPage('topics');
+            showToast('✅ تمت إضافة الموضوع');
+        }
+
+        function cycleTopicStatus(id) {
+            const topic = appData.difficultTopics.find(t => t.id === id);
+            if (!topic) return;
+            const statuses = ['لم أبدأ', 'أتعلم', 'فهمت', 'تم الحل'];
+            const idx = statuses.indexOf(topic.status);
+            topic.status = statuses[(idx + 1) % statuses.length];
+            saveAppData();
+            renderPage('topics');
+            if (topic.status === 'تم الحل') showToast('🎉 أحسنت! تم حل الموضوع');
+        }
+
+        // ============================================
+        // EXAMS
+        // ============================================
+        function renderExams() {
+            const exams = appData.exams.slice().sort((a, b) => a.date.localeCompare(b.date));
+            const upcoming = exams.filter(e => e.date >= getToday());
+            return `
+            <div class="page-header">
+                <h2>📅 الامتحانات</h2>
+                <button class="btn btn-primary" onclick="showAddExamModal()">+ إضافة امتحان</button>
+            </div>
+            ${exams.length === 0 ? `
+                <div class="card empty-state">
+                    <div class="empty-icon">📅</div>
+                    <p>لا توجد امتحانات. أضف امتحانك القادم!</p>
+                </div>
+            ` : `
+                <div class="grid-3 mb-16">
+                    ${upcoming.map(e => {
+                        const subject = appData.subjects.find(s => s.id === e.subjectId);
+                        const daysLeft = getDaysBetween(getToday(), e.date);
+                        return `
+                        <div class="card">
+                            <div class="flex items-center gap-8 mb-8">
+                                <span style="font-size:2rem;">${subject ? subject.icon : '📅'}</span>
+                                <div style="flex:1;">
+                                    <div class="fw-bold">${e.name}</div>
+                                    <div class="fs-xs text-secondary">${subject ? subject.name : 'مادة'}</div>
+                                </div>
+                            </div>
+                            <div class="fs-sm mb-4">📅 ${formatDate(e.date)} ${e.time ? '· ⏰ ' + e.time : ''}</div>
+                            ${e.location ? `<div class="fs-sm mb-4">📍 ${e.location}</div>` : ''}
+                            ${e.notes ? `<p class="fs-sm text-secondary mb-8">${e.notes}</p>` : ''}
+                            <div class="tag ${daysLeft <= 3 ? 'danger' : daysLeft <= 7 ? 'warning' : 'primary'} mb-8">
+                                ${daysLeft} يوم · ${Math.ceil(daysLeft / 7)} أسبوع
+                            </div>
+                            <div class="flex gap-8">
+                                <button class="btn btn-sm btn-outline" onclick="deleteExam('${e.id}')">🗑️</button>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+                ${exams.filter(e => e.date < getToday()).length > 0 ? `
+                    <div class="card">
+                        <div class="card-title">الامتحانات السابقة</div>
+                        <div class="table-container">
+                            <table>
+                                <thead><tr><th>الامتحان</th><th>المادة</th><th>التاريخ</th></tr></thead>
+                                <tbody>
+                                    ${exams.filter(e => e.date < getToday()).map(e => {
+                                        const subject = appData.subjects.find(s => s.id === e.subjectId);
+                                        return `<tr><td>${e.name}</td><td>${subject ? subject.name : '—'}</td><td>${formatDate(e.date)}</td></tr>`;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ` : ''}
+            `}
+            `;
+        }
+
+        function showAddExamModal() {
+            const subjects = appData.subjects;
+            if (subjects.length === 0) { showToast('⚠️ أضف مادة أولاً'); return; }
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3>+ إضافة امتحان</h3>
+                    <div class="form-group"><label>المادة</label><select id="exam-subject">${subjects.map(s => `<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>اسم الامتحان</label><input id="exam-name" placeholder="مثال: امتحان منتصف الفصل"></div>
+                    <div class="form-group"><label>التاريخ</label><input type="date" id="exam-date" value="${getToday()}"></div>
+                    <div class="form-group"><label>الوقت</label><input type="time" id="exam-time"></div>
+                    <div class="form-group"><label>المكان</label><input id="exam-location" placeholder="مثال: قاعة 3"></div>
+                    <div class="form-group"><label>ملاحظات</label><textarea id="exam-notes" rows="2"></textarea></div>
+                    <div class="flex gap-8">
+                        <button class="btn btn-primary" onclick="addExam()">حفظ</button>
+                        <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        function addExam() {
+            const subjectId = document.getElementById('exam-subject').value;
+            const name = document.getElementById('exam-name').value.trim();
+            const date = document.getElementById('exam-date').value;
+            if (!name || !date) { showToast('⚠️ أدخل الاسم والتاريخ'); return; }
+            const subject = appData.subjects.find(s => s.id === subjectId);
+            appData.exams.push({
+                id: generateId(),
+                subjectId,
+                subjectName: subject ? subject.name : '',
+                name,
+                date,
+                time: document.getElementById('exam-time').value,
+                location: document.getElementById('exam-location').value.trim(),
+                notes: document.getElementById('exam-notes').value.trim(),
+                createdAt: new Date().toISOString(),
+            });
+            saveAppData();
+            closeModal();
+            renderPage('exams');
+            showToast('✅ تمت إضافة الامتحان');
+        }
+
+        function deleteExam(id) {
+            if (!confirm('حذف هذا الامتحان؟')) return;
+            appData.exams = appData.exams.filter(e => e.id !== id);
+            saveAppData();
+            renderPage('exams');
+            showToast('🗑️ تم حذف الامتحان');
+        }
+
+        // ============================================
+        // GOALS
+        // ============================================
+        function renderGoals() {
+            const goals = appData.goals.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+            const completed = goals.filter(g => g.completed).length;
+            return `
+            <div class="page-header">
+                <h2>🎯 الأهداف</h2>
+                <button class="btn btn-primary" onclick="showAddGoalModal()">+ هدف جديد</button>
+            </div>
+            <div class="grid-2 mb-16">
+                <div class="card text-center">
+                    <div class="stat-value">${goals.length}</div>
+                    <div class="fs-xs text-secondary">إجمالي الأهداف</div>
+                </div>
+                <div class="card text-center">
+                    <div class="stat-value text-success">${completed}</div>
+                    <div class="fs-xs text-secondary">مكتملة</div>
+                    <div class="progress-bar mt-8"><div class="fill success" style="width:${goals.length > 0 ? Math.round((completed/goals.length)*100) : 0}%;"></div></div>
+                </div>
+            </div>
+            ${goals.length === 0 ? `
+                <div class="card empty-state">
+                    <div class="empty-icon">🎯</div>
+                    <p>لا توجد أهداف. حدد هدفك الأول!</p>
+                </div>
+            ` : `
+                <div class="grid-2">
+                    ${goals.map(g => `
+                        <div class="card ${g.completed ? 'style="opacity:0.7;"' : ''}">
+                            <div class="flex items-center gap-8 mb-8">
+                                <span class="tag ${g.type === 'يومي' ? 'primary' : g.type === 'أسبوعي' ? 'success' : g.type === 'شهري' ? 'warning' : 'danger'}">${g.type}</span>
+                                <span class="fw-bold" style="flex:1;">${g.title}</span>
+                                ${g.completed ? '<span style="font-size:1.5rem;">✅</span>' : ''}
+                            </div>
+                            ${g.description ? `<p class="fs-sm text-secondary mb-8">${g.description}</p>` : ''}
+                            <div class="flex gap-8 mt-8">
+                                <button class="btn btn-sm ${g.completed ? 'btn-outline' : 'btn-primary'}" onclick="toggleGoalComplete('${g.id}')">${g.completed ? 'إلغاء الإكمال' : 'تحديد كمكتمل'}</button>
+                                <button class="btn btn-sm btn-outline" onclick="deleteGoal('${g.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `}
+            `;
+        }
+
+        function showAddGoalModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3>+ هدف جديد</h3>
+                    <div class="form-group"><label>العنوان</label><input id="goal-title" placeholder="مثال: دراسة الفيزياء 3 ساعات"></div>
+                    <div class="form-group"><label>النوع</label><select id="goal-type">${GOAL_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>الوصف (اختياري)</label><textarea id="goal-desc" rows="2"></textarea></div>
+                    <div class="flex gap-8">
+                        <button class="btn btn-primary" onclick="addGoal()">حفظ</button>
+                        <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        function addGoal() {
+            const title = document.getElementById('goal-title').value.trim();
+            if (!title) { showToast('⚠️ أدخل هدفاً'); return; }
+            appData.goals.push({
+                id: generateId(),
+                title,
+                type: document.getElementById('goal-type').value,
+                description: document.getElementById('goal-desc').value.trim(),
+                completed: false,
+                createdAt: new Date().toISOString(),
+            });
+            saveAppData();
+            closeModal();
+            renderPage('goals');
+            showToast('✅ تمت إضافة الهدف');
+        }
+
+        function toggleGoalComplete(id) {
+            const goal = appData.goals.find(g => g.id === id);
+            if (goal) {
+                goal.completed = !goal.completed;
+                saveAppData();
+                renderPage('goals');
+                if (goal.completed) showToast('🎉 أحسنت! هدف مكتمل');
+            }
+        }
+
+        function deleteGoal(id) {
+            appData.goals = appData.goals.filter(g => g.id !== id);
+            saveAppData();
+            renderPage('goals');
+            showToast('🗑️ تم حذف الهدف');
+        }
+
+        // ============================================
+        // ANALYTICS
+        // ============================================
+        function renderAnalytics() {
+            const avg = getOverallAverage(appData);
+            const threshold = settings.threshold || 60;
+            const studyMin = getTotalStudyMinutes(appData);
+            const attendanceStats = getAttendanceStats(appData);
+            const attendancePct = attendanceStats.total > 0 ? Math.round((attendanceStats.present / attendanceStats.total) *
+                100) : 0;
+            const completedGoals = appData.goals.filter(g => g.completed).length;
+            const solvedTopics = appData.difficultTopics.filter(t => t.status === 'تم الحل').length;
+            return `
+            <div class="page-header">
+                <h2>📈 الإحصائيات والتحليلات</h2>
+            </div>
+            <div class="grid-4 mb-16">
+                <div class="card text-center"><div class="stat-value">${avg}%</div><div class="fs-xs text-secondary">الأداء العام</div></div>
+                <div class="card text-center"><div class="stat-value">${Math.round(studyMin/60)}</div><div class="fs-xs text-secondary">ساعات دراسة</div></div>
+                <div class="card text-center"><div class="stat-value">${attendancePct}%</div><div class="fs-xs text-secondary">نسبة الحضور</div></div>
+                <div class="card text-center"><div class="stat-value">${completedGoals}</div><div class="fs-xs text-secondary">أهداف مكتملة</div></div>
+            </div>
+            <div class="grid-2 mb-16">
+                <div class="card">
+                    <div class="card-title">📊 أداء المواد</div>
+                    <div class="chart-container"><canvas id="analytics-subjects-chart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📈 تطور الدرجات</div>
+                    <div class="chart-container"><canvas id="analytics-grades-chart"></canvas></div>
+                </div>
+            </div>
+            <div class="grid-2 mb-16">
+                <div class="card">
+                    <div class="card-title">⏱️ وقت الدراسة أسبوعياً</div>
+                    <div class="chart-container"><canvas id="analytics-study-chart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📊 ملخص سريع</div>
+                    <ul class="fs-sm">
+                        <li class="mb-8">📝 التقييمات: <span class="fw-bold">${appData.grades.length}</span></li>
+                        <li class="mb-8">✅ أيام الحضور: <span class="fw-bold">${attendanceStats.present}</span></li>
+                        <li class="mb-8">❓ مواضيع محلولة: <span class="fw-bold">${solvedTopics} / ${appData.difficultTopics.length}</span></li>
+                        <li class="mb-8">🗒️ ملاحظات: <span class="fw-bold">${appData.notes.length}</span></li>
+                        <li class="mb-8">🎯 نسبة إكمال الأهداف: <span class="fw-bold">${appData.goals.length > 0 ? Math.round((completedGoals/appData.goals.length)*100) : 0}%</span></li>
+                        <li class="mb-8">🔥 سلسلة الدراسة: <span class="fw-bold">${getStudyStreak(appData)} أيام</span></li>
+                    </ul>
+                </div>
+            </div>
+            `;
+        }
+
+        function initAnalyticsCharts() {
+            if (typeof Chart === 'undefined') return;
+            const subjectsCanvas = document.getElementById('analytics-subjects-chart');
+            if (subjectsCanvas && appData.subjects.length > 0) {
+                const labels = appData.subjects.map(s => s.name);
+                const data = appData.subjects.map(s => getSubjectAverage(appData, s.id));
+                const colors = appData.subjects.map(s => s.color || '#1E40AF');
+                new Chart(subjectsCanvas, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'المتوسط %', data, backgroundColor: colors,
+                            borderRadius: 6 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                        scales: { y: { min: 0, max: 100 } } }
+                });
+            }
+            const gradesCanvas = document.getElementById('analytics-grades-chart');
+            if (gradesCanvas && appData.grades.length > 1) {
+                const sorted = appData.grades.slice().sort((a, b) => a.date.localeCompare(b.date));
+                new Chart(gradesCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: sorted.map(g => formatDate(g.date)),
+                        datasets: [{ label: '%', data: sorted.map(g => g.percentage), borderColor: '#1E40AF',
+                            backgroundColor: 'rgba(30,64,175,0.1)', fill: true, tension: 0.3,
+                            pointBackgroundColor: sorted.map(g => g.percentage >= (settings.threshold || 60) ?
+                                '#22C55E' : '#EF4444'), pointRadius: 5 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                        scales: { y: { min: 0, max: 100 } } }
+                });
+            }
+            const studyCanvas = document.getElementById('analytics-study-chart');
+            if (studyCanvas && appData.studySessions.length > 0) {
+                const weekDays = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+                const dailyMinutes = {};
+                appData.studySessions.forEach(s => {
+                    const day = new Date(s.date + 'T00:00:00').getDay();
+                    dailyMinutes[day] = (dailyMinutes[day] || 0) + (s.durationMinutes || 0);
+                });
+                const data = [];
+                for (let i = 6; i >= 0; i--) {
+                    data.push(dailyMinutes[i] || 0);
+                }
+                new Chart(studyCanvas, {
+                    type: 'bar',
+                    data: { labels: [...weekDays].reverse(), datasets: [{ label: 'دقائق', data,
+                            backgroundColor: '#3B82F6', borderRadius: 6 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+        }
+
+        // ============================================
+        // ACADEMIC JOURNEY
+        // ============================================
+        function renderJourney() {
+            const totalDays = getAcademicYearTotalDays();
+            const currentDay = getAcademicYearDay();
+            const studyHours = Math.round(getTotalStudyMinutes(appData) / 60);
+            const avg = getOverallAverage(appData);
+            const attendanceStats = getAttendanceStats(appData);
+            const completedGoals = appData.goals.filter(g => g.completed).length;
+            const solvedTopics = appData.difficultTopics.filter(t => t.status === 'تم الحل').length;
+            const bestSubject = appData.subjects.length > 0 ? appData.subjects.reduce((best, s) => {
+                const sAvg = getSubjectAverage(appData, s.id);
+                return sAvg > (getSubjectAverage(appData, best.id) || 0) ? s : best;
+            }, appData.subjects[0]) : null;
+            const weakestSubject = appData.subjects.length > 0 ? appData.subjects.reduce((worst, s) => {
+                const sAvg = getSubjectAverage(appData, s.id);
+                return sAvg < (getSubjectAverage(appData, worst.id) || 100) ? s : worst;
+            }, appData.subjects[0]) : null;
+            const unlockedAchievements = ACHIEVEMENTS_LIST.filter(a => a.check(appData));
+            return `
+            <div class="page-header">
+                <h2>🗺️ رحلتي الأكاديمية</h2>
+            </div>
+            <div class="card mb-16">
+                <div class="card-title">📅 العام الأكاديمي</div>
+                <div class="flex items-center gap-16 mb-8">
+                    <div><span class="stat-value">${currentDay}</span><span class="fs-sm text-secondary"> / ${totalDays} يوم</span></div>
+                    <div class="progress-bar" style="flex:1;height:12px;"><div class="fill" style="width:${Math.round((currentDay/totalDays)*100)}%;"></div></div>
+                    <span class="fw-bold">${Math.round((currentDay/totalDays)*100)}%</span>
+                </div>
+                <p class="fs-sm text-secondary">${getDaysRemaining()} يوم متبقٍ في العام الدراسي</p>
+            </div>
+            <div class="grid-4 mb-16">
+                <div class="card text-center"><div class="stat-value">${studyHours}</div><div class="fs-xs text-secondary">ساعة دراسة</div></div>
+                <div class="card text-center"><div class="stat-value">${appData.grades.length}</div><div class="fs-xs text-secondary">تقييم</div></div>
+                <div class="card text-center"><div class="stat-value">${attendanceStats.present}</div><div class="fs-xs text-secondary">يوم حضور</div></div>
+                <div class="card text-center"><div class="stat-value">${solvedTopics}</div><div class="fs-xs text-secondary">موضوع محلول</div></div>
+            </div>
+            <div class="grid-2 mb-16">
+                <div class="card">
+                    <div class="card-title">🏆 أفضل مادة</div>
+                    ${bestSubject ? `
+                        <div class="flex items-center gap-12">
+                            <span style="font-size:2.5rem;">${bestSubject.icon}</span>
+                            <div>
+                                <div class="fw-bold">${bestSubject.name}</div>
+                                <div class="stat-value" style="color:var(--success);">${getSubjectAverage(appData, bestSubject.id)}%</div>
+                            </div>
+                        </div>
+                    ` : '<p class="fs-sm text-secondary">لا توجد بيانات</p>'}
+                </div>
+                <div class="card">
+                    <div class="card-title">⚠️ مادة تحتاج تحسين</div>
+                    ${weakestSubject ? `
+                        <div class="flex items-center gap-12">
+                            <span style="font-size:2.5rem;">${weakestSubject.icon}</span>
+                            <div>
+                                <div class="fw-bold">${weakestSubject.name}</div>
+                                <div class="stat-value" style="color:var(--warning);">${getSubjectAverage(appData, weakestSubject.id)}%</div>
+                            </div>
+                        </div>
+                    ` : '<p class="fs-sm text-secondary">لا توجد بيانات</p>'}
+                </div>
+            </div>
+            <div class="card mb-16">
+                <div class="card-title">🏅 الإنجازات</div>
+                <div class="grid-2">
+                    ${ACHIEVEMENTS_LIST.map(a => {
+                        const unlocked = unlockedAchievements.some(ua => ua.id === a.id);
+                        return `<div class="achievement-badge ${unlocked ? 'unlocked' : 'locked'}">
+                            <span class="ach-icon">${a.icon}</span>
+                            <div>
+                                <div class="fw-bold fs-sm">${a.name}</div>
+                                <div class="fs-xs text-secondary">${a.desc}</div>
+                            </div>
+                            ${unlocked ? '<span style="font-size:1.2rem;">✅</span>' : '<span style="font-size:1.2rem;">🔒</span>'}
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">📜 الخط الزمني الأكاديمي</div>
+                <div class="fs-sm">
+                    ${appData.grades.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 10).map(g => {
+                        const subject = appData.subjects.find(s => s.id === g.subjectId);
+                        return `<div class="flex items-center gap-8 mb-8">
+                            <span class="text-secondary fs-xs">${formatDate(g.date)}</span>
+                            <span style="width:8px;height:8px;border-radius:50%;background:${g.percentage >= (settings.threshold || 60) ? 'var(--success)' : 'var(--danger)'};"></span>
+                            <span>${subject ? subject.name : 'مادة'} - ${g.title}</span>
+                            <span class="fw-bold">${g.percentage}%</span>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+            `;
+        }
+
+        // ============================================
+        // SETTINGS
+        // ============================================
+        function renderSettings() {
+            return `
+            <div class="page-header">
+                <h2>⚙️ الإعدادات</h2>
+            </div>
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-title">👤 الملف الشخصي</div>
+                    <div class="form-group"><label>الاسم</label><input id="settings-name" value="${settings.studentName || currentUser.name}" placeholder="اسمك"></div>
+                    <div class="form-group"><label>البريد الإلكتروني</label><input value="${currentUser.email}" disabled></div>
+                    <button class="btn btn-primary" onclick="updateProfileSettings()">حفظ</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">📚 الإعدادات الأكاديمية</div>
+                    <div class="form-group"><label>المسار الأكاديمي</label><select id="settings-pathway">${Object.entries(PATHWAYS_CONFIG).map(([k, v]) => `<option value="${k}" ${settings.pathway === k ? 'selected' : ''}>${v.icon} ${v.name}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>الحد الرسمي (%)</label><input type="number" id="settings-threshold" value="${settings.threshold || 60}" min="0" max="100"></div>
+                    <div class="form-group"><label>بداية العام الدراسي</label><input type="date" id="settings-start" value="${settings.academicYearStart || '2025-09-01'}"></div>
+                    <div class="form-group"><label>نهاية العام الدراسي</label><input type="date" id="settings-end" value="${settings.academicYearEnd || '2026-06-15'}"></div>
+                    <button class="btn btn-primary" onclick="updateAcademicSettings()">حفظ الإعدادات</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">🎨 المظهر</div>
+                    <div class="flex items-center gap-8 mb-12">
+                        <input type="checkbox" id="settings-darkmode" ${settings.darkMode ? 'checked' : ''} onchange="toggleDarkMode(this.checked)">
+                        <label for="settings-darkmode">الوضع الليلي</label>
+                    </div>
+                    <button class="btn btn-outline" onclick="navigateTo('subjects')">إدارة المواد</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">🔔 التذكيرات</div>
+                    <div class="flex items-center gap-8 mb-12">
+                        <input type="checkbox" id="settings-islamic" ${settings.islamicReminders ? 'checked' : ''} onchange="toggleIslamicReminders(this.checked)">
+                        <label for="settings-islamic">التذكيرات الإسلامية</label>
+                    </div>
+                    <div class="form-group"><label>تكرار التذكير</label><select id="settings-reminder-freq"><option value="hourly" ${settings.reminderFrequency === 'hourly' ? 'selected' : ''}>كل ساعة</option><option value="daily" ${settings.reminderFrequency === 'daily' ? 'selected' : ''}>يومي</option><option value="weekly" ${settings.reminderFrequency === 'weekly' ? 'selected' : ''}>أسبوعي</option></select></div>
+                    <button class="btn btn-primary" onclick="updateReminderSettings()">حفظ</button>
+                </div>
+            </div>
+            <div class="card mt-16">
+                <div class="card-title">ℹ️ عن التطبيق</div>
+                <p class="fs-sm text-secondary">رفيقك الأكاديمي — البكالوريا المصرية</p>
+                <p class="fs-sm text-secondary">الإصدار 1.0.0</p>
+                <p class="fs-sm text-secondary mt-8">⚠️ جميع الحسابات الأكاديمية قابلة للتكوين ولا تمثل النتيجة الرسمية النهائية.</p>
+            </div>
+            `;
+        }
+
+        function updateProfileSettings() {
+            const name = document.getElementById('settings-name').value.trim();
+            if (name) {
+                settings.studentName = name;
+                currentUser.name = name;
+                saveSettings();
+                updateUserUI();
+                showToast('✅ تم حفظ الملف الشخصي');
+            }
+        }
+
+        function updateAcademicSettings() {
+            const pathway = document.getElementById('settings-pathway').value;
+            const threshold = parseInt(document.getElementById('settings-threshold').value);
+            const start = document.getElementById('settings-start').value;
+            const end = document.getElementById('settings-end').value;
+            if (!threshold || threshold < 0 || threshold > 100) { showToast('⚠️ حد غير صالح'); return; }
+            if (start >= end) { showToast('⚠️ تاريخ البداية يجب أن يكون قبل النهاية'); return; }
+            settings.pathway = pathway;
+            settings.threshold = threshold;
+            settings.academicYearStart = start;
+            settings.academicYearEnd = end;
+            saveSettings();
+            showToast('✅ تم حفظ الإعدادات الأكاديمية');
+        }
+
+        function toggleDarkMode(dark) {
+            settings.darkMode = dark;
+            saveSettings();
+            applyDarkMode(dark);
+        }
+
+        function toggleIslamicReminders(enabled) {
+            settings.islamicReminders = enabled;
+            saveSettings();
+            showToast(enabled ? '✅ تم تفعيل التذكيرات الإسلامية' : '❌ تم إيقاف التذكيرات الإسلامية');
+        }
+
+        function updateReminderSettings() {
+            settings.reminderFrequency = document.getElementById('settings-reminder-freq').value;
+            saveSettings();
+            showToast('✅ تم حفظ إعدادات التذكير');
+        }
+
+        // ============================================
+        // MODAL HELPERS
+        // ============================================
+        function closeModal() {
+            const overlays = document.querySelectorAll('.modal-overlay');
+            overlays.forEach(o => o.remove());
+        }
+
+        // ============================================
+        // APP INITIALIZATION
+        // ============================================
+        function initApp() {
+            loadAppDataFromLocal();
+            loadSettingsFromLocal();
+            if (!appData) appData = getDefaultData();
+            if (!settings) settings = { ...DEFAULT_SETTINGS };
+            applyDarkMode(settings.darkMode);
+            updateUserUI();
+            if (settings.pathway && appData.subjects.length > 0) {
+                showApp();
+            } else {
+                showOnboarding();
+            }
+            // Try to sync from Firebase in background
+            loadFromFirebase().then(fbData => {
+                if (fbData) {
+                    appData = fbData.appData;
+                    settings = fbData.settings;
+                    applyDarkMode(settings.darkMode);
+                    updateUserUI();
+                    if (settings.pathway && appData.subjects.length > 0) {
+                        showApp();
+                    } else {
+                        showOnboarding();
+                    }
+                }
+            });
+        }
+
+        // Setup mobile menu button visibility
+        window.addEventListener('resize', () => {
+            const mobileHeader = document.getElementById('mobile-header');
+            if (mobileHeader) {
+                if (window.innerWidth <= 900) {
+                    mobileHeader.style.display = 'flex';
+                } else {
+                    mobileHeader.style.display = 'none';
+                }
+            }
+        });
+
+        // Auto-check achievements
+        function checkAchievements() {
+            if (!appData) return;
+            const unlocked = ACHIEVEMENTS_LIST.filter(a => a.check(appData));
+            const newAchievements = unlocked.filter(a => !appData.achievements.includes(a.id));
+            if (newAchievements.length > 0) {
+                appData.achievements.push(...newAchievements.map(a => a.id));
+                saveAppData();
+                newAchievements.forEach(a => {
+                    showToast(`🏅 إنجاز جديد: ${a.name} - ${a.desc}`);
+                });
+            }
+        }
+
+        // Override saveAppData to include achievements check
+        const originalSaveAppData = saveAppData;
+        saveAppData = function() {
+            originalSaveAppData();
+            setTimeout(checkAchievements, 100);
+        };
+
+        // Start the app
+        initApp();
+
+        // Periodic motivational message
+        setInterval(() => {
+            if (appData && currentPage === 'dashboard') {
+                const card = document.querySelector('.card:last-child p');
+                if (card && card.textContent.length > 5) {
+                    const motivational = getRandomItem(MOTIVATIONAL_MESSAGES);
+                    const islamic = settings?.islamicReminders ? getRandomItem(ISLAMIC_REMINDERS) : null;
+                    card.textContent = motivational;
+                    const islamicEl = card.nextElementSibling;
+                    if (islamicEl && islamic) islamicEl.textContent = islamic;
+                }
+            }
+        }, 30000);
+
+        console.log('🎓 رفيقك الأكاديمي — مرحباً ريهام أحمد');
+        console.log('☁️ المزامنة السحابية عبر Firebase مفعلة');
+    </script>
+</body>
+</html>
